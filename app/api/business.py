@@ -37,8 +37,8 @@ async def register_business(
     body: BusinessCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    """Onboard a new SME client."""
-    business = await create_business(
+    """Onboard a new SME client. Idempotent — returns existing record if phone already registered."""
+    business, created = await create_business(
         db=db,
         name=body.name,
         phone_number=body.phone_number,
@@ -51,7 +51,7 @@ async def register_business(
     return {
         "id": business.id,
         "name": business.name,
-        "message": "Business registered successfully",
+        "message": "Business registered successfully" if created else "Business already exists",
     }
 
 

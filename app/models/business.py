@@ -1,7 +1,8 @@
 import uuid
-from typing import Optional
+from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from app.models.database import Business
 
 
@@ -14,7 +15,8 @@ async def create_business(
     owner_email: str,
     language: str = "hinglish",
     followup_hours: int = 24,
-) -> Business:
+) -> Tuple[Business, bool]:
+    """Returns (business, created). created=False when record already existed."""
     business = Business(
         name=name,
         phone_number=phone_number,
@@ -25,9 +27,16 @@ async def create_business(
         followup_hours=followup_hours,
     )
     db.add(business)
-    await db.commit()
-    await db.refresh(business)
-    return business
+    try:
+        await db.commit()
+        await db.refresh(business)
+        return business, True
+    except IntegrityError:
+        await db.rollback()
+        existing = await db.execute(
+            select(Business).where(Business.phone_number == phone_number)
+        )
+        return existing.scalar_one(), False
 
 
 async def get_business_by_phone_id(
