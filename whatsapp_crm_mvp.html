@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic WhatsApp CRM — Production MVP Blueprint</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070a0f;--s1:#0d1117;--s2:#161b24;--s3:#1e2533;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --green:#00d68f;--blue:#4d9eff;--orange:#ff8c42;
+  --purple:#a78bfa;--red:#ff5370;--yellow:#ffd166;--cyan:#00e5ff;
+  --text:#dde2f0;--muted:#6b7591;
+  --mono:'JetBrains Mono',monospace;--sans:'Sora',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.7;}
+
+/* HEADER */
+.header{background:linear-gradient(160deg,#070a0f 0%,#0b1520 55%,#070f18 100%);border-bottom:1px solid var(--border);padding:56px 52px 44px;position:relative;overflow:hidden;}
+.header::after{content:'';position:absolute;top:0;right:0;width:600px;height:100%;background:radial-gradient(ellipse 60% 80% at 100% 40%,rgba(0,214,143,.07),transparent 70%),radial-gradient(ellipse 40% 60% at 80% 90%,rgba(77,158,255,.05),transparent 60%);pointer-events:none;}
+.live-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.25);border-radius:99px;padding:5px 14px;font-family:var(--mono);font-size:10px;color:var(--green);margin-bottom:18px;letter-spacing:.08em;}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 1.8s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.header h1{font-size:clamp(24px,3.8vw,46px);font-weight:800;line-height:1.12;letter-spacing:-1.5px;max-width:820px;}
+.header h1 em{color:var(--green);font-style:normal;}
+.header-sub{color:var(--muted);font-size:14px;margin-top:14px;max-width:640px;line-height:1.7;}
+.meta-strip{display:flex;flex-wrap:wrap;gap:0;margin-top:32px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--s1);}
+.meta-cell{padding:14px 22px;border-right:1px solid var(--border);flex:1;min-width:130px;}
+.meta-cell:last-child{border-right:none;}
+.mc-label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.mc-val{font-size:13px;font-weight:700;color:var(--text);}
+.mc-val.g{color:var(--green);}
+
+/* TOP NAV TABS */
+.topnav{display:flex;overflow-x:auto;background:var(--s1);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;scrollbar-width:none;}
+.topnav::-webkit-scrollbar{display:none;}
+.tn-tab{padding:14px 20px;cursor:pointer;white-space:nowrap;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;transition:all .18s;display:flex;align-items:center;gap:7px;}
+.tn-tab:hover{color:var(--text);background:var(--s2);}
+.tn-tab.active{color:var(--green);border-bottom-color:var(--green);background:rgba(0,214,143,.04);}
+.tn-tab .tn-num{font-family:var(--mono);font-size:9px;opacity:.5;}
+
+/* CONTENT */
+.tab-content{display:none;max-width:1060px;margin:0 auto;padding:40px 40px 60px;}
+.tab-content.active{display:block;}
+
+/* SECTION HEADINGS */
+.sh{font-size:20px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;display:flex;align-items:center;gap:12px;}
+.sh-sub{font-size:13px;color:var(--muted);margin-bottom:28px;}
+.sh .badge-pill{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:3px 10px;border-radius:99px;font-weight:700;}
+.badge-pill.green{background:rgba(0,214,143,.12);border:1px solid rgba(0,214,143,.25);color:var(--green);}
+.badge-pill.blue{background:rgba(77,158,255,.12);border:1px solid rgba(77,158,255,.25);color:var(--blue);}
+.badge-pill.orange{background:rgba(255,140,66,.12);border:1px solid rgba(255,140,66,.25);color:var(--orange);}
+.badge-pill.purple{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.25);color:var(--purple);}
+
+.divider{border:none;border-top:1px solid var(--border);margin:32px 0;}
+
+/* CARDS */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px;}
+.card.accent-green{border-left:3px solid var(--green);}
+.card.accent-blue{border-left:3px solid var(--blue);}
+.card.accent-orange{border-left:3px solid var(--orange);}
+.card.accent-purple{border-left:3px solid var(--purple);}
+.card.accent-red{border-left:3px solid var(--red);}
+.card-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:9px;}
+.card p,.card li{font-size:13px;color:var(--text);line-height:1.78;}
+.card ul,.card ol{padding-left:18px;}
+.card li{margin-bottom:2px;}
+.card ul li::marker{color:var(--green);}
+.card ol li::marker{color:var(--green);font-family:var(--mono);font-size:11px;}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+
+/* CODE */
+.code-wrap{background:var(--s1);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:20px;}
+.code-bar{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:var(--s2);border-bottom:1px solid var(--border);}
+.code-bar-left{display:flex;align-items:center;gap:10px;}
+.code-dots{display:flex;gap:5px;}
+.cd{width:10px;height:10px;border-radius:50%;}
+.cd1{background:#ff5f57;}.cd2{background:#febc2e;}.cd3{background:#28c840;}
+.code-file{font-family:var(--mono);font-size:12px;color:var(--text);}
+.code-lang{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+pre{padding:22px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.72;color:#b0bbd4;tab-size:2;}
+.kw{color:#ff7b72;}
+.fn{color:#d2a8ff;}
+.str{color:#a5d6ff;}
+.cm{color:#4a5168;font-style:italic;}
+.cl{color:#79c0ff;}
+.dec{color:#ffa657;}
+.num{color:#79c0ff;}
+.op{color:#ff7b72;}
+.var{color:#e8eaf0;}
+
+/* ARCH DIAGRAM */
+.arch-wrap{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:20px;}
+.arch-row{display:flex;align-items:stretch;gap:8px;margin-bottom:6px;}
+.arch-node{background:var(--s2);border:1px solid var(--border2);border-radius:9px;padding:12px 16px;flex:1;font-size:12px;}
+.arch-node .an-label{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.arch-node .an-name{font-weight:700;font-size:13px;}
+.arch-node .an-desc{font-size:11px;color:var(--muted);margin-top:3px;}
+.arch-arrow-down{display:flex;justify-content:center;align-items:center;height:28px;color:var(--green);font-size:16px;position:relative;}
+.arch-arrow-down::before{content:'';position:absolute;left:50%;width:1px;height:100%;background:rgba(0,214,143,.3);transform:translateX(-50%);}
+.arch-arrow-right{display:flex;align-items:center;justify-content:center;padding:0 8px;color:var(--green);font-size:14px;flex-shrink:0;}
+.arch-section-label{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+.arch-layer{background:rgba(255,255,255,.02);border:1px dashed var(--border2);border-radius:10px;padding:16px;margin-bottom:8px;}
+.arch-layer-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:12px;}
+
+.green-layer .arch-layer-title{color:var(--green);}
+.blue-layer .arch-layer-title{color:var(--blue);}
+.orange-layer .arch-layer-title{color:var(--orange);}
+.purple-layer .arch-layer-title{color:var(--purple);}
+
+/* TIMELINE */
+.tl{padding-left:28px;position:relative;margin:8px 0 24px;}
+.tl::before{content:'';position:absolute;left:8px;top:6px;bottom:6px;width:1px;background:var(--border2);}
+.tl-item{position:relative;padding-bottom:24px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-dot{position:absolute;left:-24px;top:5px;width:14px;height:14px;border-radius:50%;border:2px solid var(--green);background:var(--bg);}
+.tl-dot.solid{background:var(--green);}
+.tl-week{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:3px;}
+.tl-title{font-size:14px;font-weight:700;margin-bottom:5px;}
+.tl-body{font-size:13px;color:var(--muted);}
+.task-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.tc{background:var(--s2);border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:11px;padding:3px 9px;color:var(--text);}
+.tc.done{background:rgba(0,214,143,.08);border-color:rgba(0,214,143,.2);color:var(--green);}
+
+/* TABLE */
+.t{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px;}
+.t th{text-align:left;padding:10px 14px;font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border2);background:var(--s2);}
+.t td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+.t tr:last-child td{border-bottom:none;}
+.t tr:hover td{background:rgba(255,255,255,.02);}
+.mono-sm{font-family:var(--mono);font-size:11px;}
+
+/* INFO BOX */
+.ib{border-radius:10px;padding:14px 16px;margin-bottom:14px;border-left:3px solid;}
+.ib.tip{background:rgba(0,214,143,.06);border-color:var(--green);}
+.ib.warn{background:rgba(255,140,66,.06);border-color:var(--orange);}
+.ib.note{background:rgba(77,158,255,.06);border-color:var(--blue);}
+.ib.danger{background:rgba(255,83,112,.06);border-color:var(--red);}
+.ib-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
+.ib.tip .ib-title{color:var(--green);}
+.ib.warn .ib-title{color:var(--orange);}
+.ib.note .ib-title{color:var(--blue);}
+.ib.danger .ib-title{color:var(--red);}
+.ib p,.ib li{font-size:13px;color:var(--text);line-height:1.7;}
+.ib ul{padding-left:16px;margin-top:4px;}
+.ib li::marker{color:inherit;}
+
+/* PILL TAGS */
+.pt{display:inline-flex;align-items:center;border-radius:5px;font-family:var(--mono);font-size:11px;padding:3px 9px;font-weight:500;margin:2px;}
+.pt.g{background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.25);color:var(--green);}
+.pt.b{background:rgba(77,158,255,.1);border:1px solid rgba(77,158,255,.25);color:var(--blue);}
+.pt.o{background:rgba(255,140,66,.1);border:1px solid rgba(255,140,66,.25);color:var(--orange);}
+.pt.p{background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:var(--purple);}
+.pt.r{background:rgba(255,83,112,.1);border:1px solid rgba(255,83,112,.25);color:var(--red);}
+.pt.y{background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.25);color:var(--yellow);}
+
+/* FLOW */
+.flow-row{display:flex;align-items:center;gap:0;margin-bottom:6px;}
+.flow-box{background:var(--s2);border:1px solid var(--border2);border-radius:9px;padding:12px 16px;flex:1;font-size:12px;}
+.flow-box .fb-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.flow-box .fb-name{font-weight:700;font-size:13px;}
+.flow-box .fb-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.flow-arr{display:flex;align-items:center;justify-content:center;padding:0 10px;color:var(--green);font-size:16px;flex-shrink:0;}
+.flow-down{display:flex;justify-content:center;padding:3px 0;color:var(--green);font-size:14px;}
+
+/* SCREEN MOCKUP */
+.screen-wrap{background:var(--s2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;}
+.screen-bar{background:var(--s1);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.screen-bar .sb-title{font-size:12px;font-weight:700;flex:1;text-align:center;}
+.screen-content{padding:20px;}
+
+/* PRICING */
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0;}
+.price-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:22px;text-align:center;transition:border-color .2s;}
+.price-card.featured{border-color:var(--green);background:rgba(0,214,143,.04);}
+.price-card:hover{border-color:var(--border2);}
+.price-card.featured:hover{border-color:var(--green);}
+.price-name{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.price-amt{font-size:30px;font-weight:800;color:var(--text);letter-spacing:-1px;}
+.price-amt span{font-size:14px;font-weight:400;color:var(--muted);}
+.price-desc{font-size:12px;color:var(--muted);margin:10px 0 14px;}
+.price-features{text-align:left;font-size:12px;list-style:none;padding:0;}
+.price-features li{padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;color:var(--text);}
+.price-features li:last-child{border-bottom:none;}
+.price-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+
+/* CHECKLIST */
+.checklist{list-style:none;padding:0;}
+.checklist li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.checklist li:last-child{border-bottom:none;}
+.chk-box{width:18px;height:18px;border-radius:4px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:11px;}
+.chk-box.done{background:var(--green);border-color:var(--green);color:#000;font-weight:800;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px;}
+
+@media(max-width:768px){
+  .header{padding:36px 20px 28px;}
+  .tab-content{padding:24px 18px 48px;}
+  .g2,.g3,.price-grid{grid-template-columns:1fr;}
+  .topnav .tn-tab{padding:12px 14px;}
+  .meta-strip{flex-direction:column;}
+  .meta-cell{border-right:none;border-bottom:1px solid var(--border);}
+  .arch-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="live-badge"><span class="live-dot"></span>MVP PRODUCTION BLUEPRINT · 2026</div>
+  <h1>Agentic WhatsApp CRM<br><em>Production-Ready MVP Guide</em></h1>
+  <p class="header-sub">Complete implementation guide — architecture, full backend code, AI agent design, iOS dashboard, testing, deployment, and monetization for Indian Tier-2/3 SME market.</p>
+  <div class="meta-strip">
+    <div class="meta-cell"><div class="mc-label">MVP Timeline</div><div class="mc-val g">14–16 Weeks</div></div>
+    <div class="meta-cell"><div class="mc-label">First Revenue</div><div class="mc-val g">Week 10–12</div></div>
+    <div class="meta-cell"><div class="mc-label">Initial Budget</div><div class="mc-val">₹20K–₹40K</div></div>
+    <div class="meta-cell"><div class="mc-label">Backend</div><div class="mc-val">Python + FastAPI</div></div>
+    <div class="meta-cell"><div class="mc-label">AI Layer</div><div class="mc-val">GPT-4o + CrewAI</div></div>
+    <div class="meta-cell"><div class="mc-label">Mobile</div><div class="mc-val">SwiftUI iOS</div></div>
+    <div class="meta-cell"><div class="mc-label">Target</div><div class="mc-val">3–5 SMEs in 30 days</div></div>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<div class="topnav">
+  <div class="tn-tab active" onclick="showTab('overview')"><span class="tn-num">00</span> Overview</div>
+  <div class="tn-tab" onclick="showTab('architecture')"><span class="tn-num">01</span> Architecture</div>
+  <div class="tn-tab" onclick="showTab('stack')"><span class="tn-num">02</span> Tech Stack</div>
+  <div class="tn-tab" onclick="showTab('backend')"><span class="tn-num">03</span> Backend Code</div>
+  <div class="tn-tab" onclick="showTab('agents')"><span class="tn-num">04</span> AI Agents</div>
+  <div class="tn-tab" onclick="showTab('database')"><span class="tn-num">05</span> Database</div>
+  <div class="tn-tab" onclick="showTab('ios')"><span class="tn-num">06</span> iOS Dashboard</div>
+  <div class="tn-tab" onclick="showTab('testing')"><span class="tn-num">07</span> Testing</div>
+  <div class="tn-tab" onclick="showTab('deploy')"><span class="tn-num">08</span> Deployment</div>
+  <div class="tn-tab" onclick="showTab('monetize')"><span class="tn-num">09</span> Monetization</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 0: OVERVIEW -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-overview">
+  <div class="sh">Project Overview <span class="badge-pill green">START HERE</span></div>
+  <div class="sh-sub">What you're building, who it's for, and how every piece fits together.</div>
+
+  <div class="g2">
+    <div class="card accent-green">
+      <div class="card-title">🎯 What You're Building</div>
+      <p>A SaaS platform that plugs into a local business's WhatsApp number and uses AI agents to automatically reply to customers, follow up on cold leads, suggest products, and give the business owner a live CRM dashboard — all without them writing a single message.</p>
+    </div>
+    <div class="card accent-blue">
+      <div class="card-title">👤 Target Customer</div>
+      <ul>
+        <li>Clothing stores, salons, restaurants in Asansol/Durgapur</li>
+        <li>Coaching centers, medical clinics, hardware shops</li>
+        <li>Owner gets 50–150 WhatsApp messages/day</li>
+        <li>Replies manually, misses nights/weekends</li>
+        <li>Has no budget for a full-time assistant</li>
+        <li>Pays ₹1,000–₹3,000/month if it saves time</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">✨ Core MVP Features (30-day scope)</div>
+    <div class="g3" style="margin-top:14px;margin-bottom:0;">
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-bottom:7px;letter-spacing:.1em;">FEATURE 1</div>
+        <div style="font-weight:700;margin-bottom:5px;">Auto-Reply Agent</div>
+        <div style="font-size:12px;color:var(--muted);">Reads incoming WhatsApp messages, understands intent, responds in Hindi/Hinglish using business's own product catalog and FAQs</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--blue);margin-bottom:7px;letter-spacing:.1em;">FEATURE 2</div>
+        <div style="font-weight:700;margin-bottom:5px;">Follow-up Agent</div>
+        <div style="font-size:12px;color:var(--muted);">Detects when a customer goes quiet after showing interest. Sends a warm follow-up after 12 or 24 hours automatically</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--orange);margin-bottom:7px;letter-spacing:.1em;">FEATURE 3</div>
+        <div style="font-weight:700;margin-bottom:5px;">Sales Agent</div>
+        <div style="font-size:12px;color:var(--muted);">Proactively suggests products, promotes offers and deals based on conversation context and customer history</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--purple);margin-bottom:7px;letter-spacing:.1em;">FEATURE 4</div>
+        <div style="font-weight:700;margin-bottom:5px;">Customer CRM</div>
+        <div style="font-size:12px;color:var(--muted);">Stores customer name + number, tracks every conversation, tags leads as Hot/Warm/Cold automatically</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--cyan);margin-bottom:7px;letter-spacing:.1em;">FEATURE 5</div>
+        <div style="font-weight:700;margin-bottom:5px;">iOS Dashboard</div>
+        <div style="font-size:12px;color:var(--muted);">Business owner sees all chats, lead status, follow-up queue, and daily stats from their iPhone</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--yellow);margin-bottom:7px;letter-spacing:.1em;">FEATURE 6</div>
+        <div style="font-weight:700;margin-bottom:5px;">Manual Override</div>
+        <div style="font-size:12px;color:var(--muted);">Owner can take over any conversation, pause AI for specific customers, and add custom replies anytime</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card accent-green">
+    <div class="card-title">🗓️ 30-Day Sprint to First 3 Clients</div>
+    <div class="tl" style="margin-top:14px;">
+      <div class="tl-item">
+        <div class="tl-dot solid"></div>
+        <div class="tl-week">Week 1–2</div>
+        <div class="tl-title">Foundation — Backend + WhatsApp Webhook</div>
+        <div class="tl-body">Set up FastAPI, connect Meta WhatsApp Cloud API, receive + send messages, set up PostgreSQL schema</div>
+        <div class="task-chips">
+          <span class="tc">FastAPI project init</span><span class="tc">Webhook handler</span><span class="tc">DB schema</span><span class="tc">Message send/receive</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot solid"></div>
+        <div class="tl-week">Week 3–4</div>
+        <div class="tl-title">AI Brain — Reply Agent + RAG over Business Data</div>
+        <div class="tl-body">Build the Reply Agent using GPT-4o, create RAG pipeline over product catalog, connect conversation memory</div>
+        <div class="task-chips">
+          <span class="tc">OpenAI integration</span><span class="tc">RAG pipeline</span><span class="tc">Prompt engineering</span><span class="tc">Intent classification</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Week 5–6</div>
+        <div class="tl-title">Follow-up Agent + Sales Agent</div>
+        <div class="tl-body">Build background scheduler, implement follow-up logic, add sales suggestion layer</div>
+        <div class="task-chips">
+          <span class="tc">APScheduler</span><span class="tc">Follow-up logic</span><span class="tc">Sales prompts</span><span class="tc">Lead scoring</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Week 7–8</div>
+        <div class="tl-title">iOS Dashboard — SwiftUI App</div>
+        <div class="tl-body">Build SwiftUI dashboard: chat list, lead tracker, follow-up queue, stats panel</div>
+        <div class="task-chips">
+          <span class="tc">SwiftUI screens</span><span class="tc">REST API calls</span><span class="tc">Push notifications</span><span class="tc">Manual override</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Week 9–10</div>
+        <div class="tl-title">Testing + First Beta Client Onboarding</div>
+        <div class="tl-body">ngrok testing, Twilio sandbox, onboard 1 real client from Asansol for live pilot</div>
+        <div class="task-chips">
+          <span class="tc">Integration testing</span><span class="tc">ngrok setup</span><span class="tc">Client onboarding</span><span class="tc">Bug fixing</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Week 11–14</div>
+        <div class="tl-title">Deploy + Scale to 3–5 Paying Clients</div>
+        <div class="tl-body">Deploy to Railway/Render, configure production webhooks, onboard 3–5 businesses with full setup</div>
+        <div class="task-chips">
+          <span class="tc">Railway deploy</span><span class="tc">SSL + domain</span><span class="tc">Client #2 #3 onboard</span><span class="tc">MRR target: ₹9K+</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ib tip">
+    <div class="ib-title">💡 Philosophy: Keep It Boring and Shippable</div>
+    <p>The biggest mistake is over-engineering. For your first 5 clients, you don't need microservices, Kubernetes, or a multi-model ensemble. You need a working webhook, one GPT-4o call per message, and a simple database. Build that first. Complexity can come later — after you have paying customers.</p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 1: ARCHITECTURE -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-architecture">
+  <div class="sh">System Architecture <span class="badge-pill blue">DESIGN</span></div>
+  <div class="sh-sub">High-level component breakdown and data flow from WhatsApp message to AI response.</div>
+
+  <div class="arch-wrap">
+    <div class="arch-section-label">COMPLETE SYSTEM ARCHITECTURE — AGENTIC WHATSAPP CRM</div>
+
+    <!-- Layer 1: Entry -->
+    <div class="arch-layer green-layer">
+      <div class="arch-layer-title">📲 ENTRY LAYER — Customer Touchpoints</div>
+      <div class="arch-row">
+        <div class="arch-node">
+          <div class="an-label">Channel</div>
+          <div class="an-name">Customer WhatsApp</div>
+          <div class="an-desc">Text / Audio / Image messages</div>
+        </div>
+        <div class="arch-arrow-right">→</div>
+        <div class="arch-node">
+          <div class="an-label">Meta API</div>
+          <div class="an-name">WhatsApp Cloud API</div>
+          <div class="an-desc">Receives message, verifies webhook signature</div>
+        </div>
+        <div class="arch-arrow-right">→</div>
+        <div class="arch-node">
+          <div class="an-label">Webhook</div>
+          <div class="an-name">POST /webhook</div>
+          <div class="an-desc">FastAPI endpoint — parses payload, queues job</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-arrow-down">↓</div>
+
+    <!-- Layer 2: Processing -->
+    <div class="arch-layer blue-layer">
+      <div class="arch-layer-title">⚙️ PROCESSING LAYER — Message Pipeline</div>
+      <div class="arch-row">
+        <div class="arch-node">
+          <div class="an-label">Step 1</div>
+          <div class="an-name">Message Parser</div>
+          <div class="an-desc">Extract phone, text, timestamp. Upsert customer in DB</div>
+        </div>
+        <div class="arch-arrow-right">→</div>
+        <div class="arch-node">
+          <div class="an-label">Step 2</div>
+          <div class="an-name">Context Builder</div>
+          <div class="an-desc">Load last N messages + business RAG context</div>
+        </div>
+        <div class="arch-arrow-right">→</div>
+        <div class="arch-node">
+          <div class="an-label">Step 3</div>
+          <div class="an-name">Intent Classifier</div>
+          <div class="an-desc">Detect: inquiry / complaint / purchase / greeting / other</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-arrow-down">↓</div>
+
+    <!-- Layer 3: AI Agents -->
+    <div class="arch-layer orange-layer">
+      <div class="arch-layer-title">🤖 AGENT LAYER — Three Specialized AI Agents</div>
+      <div class="arch-row">
+        <div class="arch-node">
+          <div class="an-label">Agent A</div>
+          <div class="an-name">🧠 Reply Agent</div>
+          <div class="an-desc">GPT-4o + RAG. Generates contextual Hindi/Hinglish reply. Handles 90% of messages.</div>
+        </div>
+        <div class="arch-arrow-right">+</div>
+        <div class="arch-node">
+          <div class="an-label">Agent B</div>
+          <div class="an-name">📅 Follow-up Agent</div>
+          <div class="an-desc">Background scheduler. Fires after 12/24hr inactivity. Warm re-engagement message.</div>
+        </div>
+        <div class="arch-arrow-right">+</div>
+        <div class="arch-node">
+          <div class="an-label">Agent C</div>
+          <div class="an-name">💰 Sales Agent</div>
+          <div class="an-desc">Triggers on purchase intent. Suggests relevant products, shares active offers.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-arrow-down">↓</div>
+
+    <!-- Layer 4: Data -->
+    <div class="arch-layer purple-layer">
+      <div class="arch-layer-title">🗄️ DATA LAYER — Storage &amp; RAG Knowledge Base</div>
+      <div class="arch-row">
+        <div class="arch-node">
+          <div class="an-label">Primary DB</div>
+          <div class="an-name">PostgreSQL (Supabase)</div>
+          <div class="an-desc">customers, conversations, messages, leads, businesses, follow_ups</div>
+        </div>
+        <div class="arch-arrow-right">+</div>
+        <div class="arch-node">
+          <div class="an-label">Vector Store</div>
+          <div class="an-name">ChromaDB (local)</div>
+          <div class="an-desc">Business product catalog, FAQs, pricing — embedded &amp; queryable by agents</div>
+        </div>
+        <div class="arch-arrow-right">+</div>
+        <div class="arch-node">
+          <div class="an-label">Cache</div>
+          <div class="an-name">Redis (optional)</div>
+          <div class="an-desc">Rate limiting, conversation state cache, session management</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-arrow-down">↓</div>
+
+    <!-- Layer 5: Output -->
+    <div class="arch-layer green-layer">
+      <div class="arch-layer-title">📤 OUTPUT LAYER — Responses &amp; Dashboard</div>
+      <div class="arch-row">
+        <div class="arch-node">
+          <div class="an-label">Outbound</div>
+          <div class="an-name">WhatsApp Reply</div>
+          <div class="an-desc">Send generated message back to customer via Meta API</div>
+        </div>
+        <div class="arch-arrow-right">+</div>
+        <div class="arch-node">
+          <div class="an-label">Dashboard</div>
+          <div class="an-name">iOS SwiftUI App</div>
+          <div class="an-desc">REST API → Business owner views chats, leads, follow-up queue</div>
+        </div>
+        <div class="arch-arrow-right">+</div>
+        <div class="arch-node">
+          <div class="an-label">Alerts</div>
+          <div class="an-name">Push Notifications</div>
+          <div class="an-desc">Hot lead detected, customer escalation, daily summary</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sh" style="margin-top:32px;">Data Flow — Step by Step</div>
+  <div class="sh-sub">Exactly what happens when a customer sends "Bhaiya jacket ka price kya hai?"</div>
+
+  <div class="card">
+    <div class="card-title">📨 Message → AI → Response Flow</div>
+    <div style="margin-top:12px;">
+      <div class="flow-row">
+        <div class="flow-box">
+          <div class="fb-lbl">Step 1 · 0ms</div>
+          <div class="fb-name">Customer sends WhatsApp message</div>
+          <div class="fb-sub">"Bhaiya jacket ka price kya hai?"</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box">
+          <div class="fb-lbl">Step 2 · ~50ms</div>
+          <div class="fb-name">Meta fires webhook POST to your server</div>
+          <div class="fb-sub">JSON payload with phone, message, timestamp</div>
+        </div>
+      </div>
+      <div class="flow-down">↓</div>
+      <div class="flow-row">
+        <div class="flow-box">
+          <div class="fb-lbl">Step 3 · ~100ms</div>
+          <div class="fb-name">FastAPI webhook handler parses payload</div>
+          <div class="fb-sub">Verifies signature, extracts data, saves raw message to DB</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box">
+          <div class="fb-lbl">Step 4 · ~120ms</div>
+          <div class="fb-name">Customer lookup / creation</div>
+          <div class="fb-sub">Find or create customer record. Load last 10 messages as context.</div>
+        </div>
+      </div>
+      <div class="flow-down">↓</div>
+      <div class="flow-row">
+        <div class="flow-box">
+          <div class="fb-lbl">Step 5 · ~150ms</div>
+          <div class="fb-name">RAG Query — ChromaDB</div>
+          <div class="fb-sub">Semantic search on business catalog: "jacket price" → returns jacket products + prices</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box">
+          <div class="fb-lbl">Step 6 · ~800ms</div>
+          <div class="fb-name">Reply Agent → GPT-4o call</div>
+          <div class="fb-sub">System prompt + conversation history + RAG results → generates Hindi/Hinglish reply</div>
+        </div>
+      </div>
+      <div class="flow-down">↓</div>
+      <div class="flow-row">
+        <div class="flow-box">
+          <div class="fb-lbl">Step 7 · ~900ms</div>
+          <div class="fb-name">Sales Agent check (parallel)</div>
+          <div class="fb-sub">If purchase intent detected → append product suggestion + active offer</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box">
+          <div class="fb-lbl">Step 8 · ~1100ms</div>
+          <div class="fb-name">Send reply via Meta API + schedule follow-up</div>
+          <div class="fb-sub">POST reply to WhatsApp. Schedule follow-up job if no reply in 24hr.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="ib note">
+      <div class="ib-title">📐 Design Principle: One Business = One Context</div>
+      <p>Each business that subscribes gets their own isolated context: their own product catalog in ChromaDB, their own conversation table partition, and their own system prompt. This way one client's data never leaks into another's.</p>
+    </div>
+    <div class="ib warn">
+      <div class="ib-title">⚠️ Multi-Tenancy from Day 1</div>
+      <p>Even with 1 client, design every DB table with a <code>business_id</code> foreign key. This makes adding client #2 trivial and prevents painful refactors later.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 2: TECH STACK -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-stack">
+  <div class="sh">Complete Tech Stack <span class="badge-pill orange">STACK</span></div>
+  <div class="sh-sub">Every tool, why you picked it, and what it costs. All choices optimized for solo founder + MVP speed.</div>
+
+  <table class="t">
+    <thead>
+      <tr><th>Layer</th><th>Technology</th><th>Why This Choice</th><th>Cost (MVP)</th><th>Alt</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="pt g">Backend</span></td>
+        <td><strong>Python 3.11 + FastAPI</strong></td>
+        <td>Async-native, auto OpenAPI docs, fastest Python framework. You know Python.</td>
+        <td>Free</td>
+        <td>Flask, Django</td>
+      </tr>
+      <tr>
+        <td><span class="pt g">WhatsApp</span></td>
+        <td><strong>Meta WhatsApp Cloud API</strong></td>
+        <td>Official Meta API. Free for first 1000 conversations/month. No middleman fees.</td>
+        <td>Free → ₹0.4/msg</td>
+        <td>Twilio (costlier)</td>
+      </tr>
+      <tr>
+        <td><span class="pt b">AI Core</span></td>
+        <td><strong>OpenAI GPT-4o</strong></td>
+        <td>Best Hindi/Hinglish understanding. Multimodal (image support). $0.005/1K input tokens.</td>
+        <td>~₹500–₹2K/mo per client</td>
+        <td>Gemini 1.5 Flash</td>
+      </tr>
+      <tr>
+        <td><span class="pt b">RAG</span></td>
+        <td><strong>ChromaDB (local)</strong></td>
+        <td>Zero-cost, embedded, runs in same process. Perfect for MVP. No network latency.</td>
+        <td>Free</td>
+        <td>Pinecone, Qdrant</td>
+      </tr>
+      <tr>
+        <td><span class="pt b">Embeddings</span></td>
+        <td><strong>OpenAI text-embedding-3-small</strong></td>
+        <td>$0.00002/1K tokens. A full product catalog costs ~₹2 to embed. Cheap and accurate.</td>
+        <td>~₹2–5 one-time/client</td>
+        <td>sentence-transformers</td>
+      </tr>
+      <tr>
+        <td><span class="pt o">Database</span></td>
+        <td><strong>Supabase (PostgreSQL)</strong></td>
+        <td>Managed Postgres, built-in auth, REST + realtime. Free tier covers 5 clients easily.</td>
+        <td>Free → $25/mo</td>
+        <td>PlanetScale, Neon</td>
+      </tr>
+      <tr>
+        <td><span class="pt o">ORM</span></td>
+        <td><strong>SQLAlchemy 2.0 + Alembic</strong></td>
+        <td>Industry standard. Async support. Migrations via Alembic for schema changes.</td>
+        <td>Free</td>
+        <td>Tortoise ORM</td>
+      </tr>
+      <tr>
+        <td><span class="pt p">Scheduler</span></td>
+        <td><strong>APScheduler</strong></td>
+        <td>In-process job scheduler. No Redis needed for MVP. Schedule follow-ups easily.</td>
+        <td>Free</td>
+        <td>Celery + Redis</td>
+      </tr>
+      <tr>
+        <td><span class="pt p">Task Queue</span></td>
+        <td><strong>FastAPI BackgroundTasks</strong></td>
+        <td>Built-in FastAPI. Process AI calls async without blocking webhook response.</td>
+        <td>Free</td>
+        <td>Celery</td>
+      </tr>
+      <tr>
+        <td><span class="pt g">Mobile</span></td>
+        <td><strong>Swift 5.9 + SwiftUI</strong></td>
+        <td>Your strongest skill. Native iOS performance. Perfect for business owner dashboard.</td>
+        <td>Free (Apple Dev: ₹8K/yr)</td>
+        <td>React Native</td>
+      </tr>
+      <tr>
+        <td><span class="pt g">HTTP Client</span></td>
+        <td><strong>httpx (async)</strong></td>
+        <td>Async HTTP client for Python. Used to call Meta API and OpenAI.</td>
+        <td>Free</td>
+        <td>aiohttp</td>
+      </tr>
+      <tr>
+        <td><span class="pt b">Auth</span></td>
+        <td><strong>Supabase Auth + JWT</strong></td>
+        <td>Row-level security for multi-tenant. Business owner login built-in.</td>
+        <td>Free</td>
+        <td>Auth0, Clerk</td>
+      </tr>
+      <tr>
+        <td><span class="pt o">Tunneling (dev)</span></td>
+        <td><strong>ngrok</strong></td>
+        <td>Expose localhost to internet for WhatsApp webhook testing. Essential for dev.</td>
+        <td>Free tier</td>
+        <td>localtunnel</td>
+      </tr>
+      <tr>
+        <td><span class="pt r">Hosting</span></td>
+        <td><strong>Railway.app</strong></td>
+        <td>Deploy with one command. Auto-deploys from GitHub. $5/mo starter. Zero DevOps.</td>
+        <td>$5–20/month</td>
+        <td>Render, Fly.io</td>
+      </tr>
+      <tr>
+        <td><span class="pt r">Monitoring</span></td>
+        <td><strong>Railway Logs + Sentry (free)</strong></td>
+        <td>Railway has built-in logs. Sentry for error tracking. Both free for MVP scale.</td>
+        <td>Free</td>
+        <td>Datadog</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <div class="card-title">📁 Project Folder Structure</div>
+    <div class="code-wrap" style="margin-top:14px;margin-bottom:0;">
+      <div class="code-bar">
+        <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">whatsapp-crm/</div></div>
+        <div class="code-lang">directory tree</div>
+      </div>
+<pre>whatsapp-crm/
+├── <span class="cl">app/</span>
+│   ├── <span class="dec">__init__.py</span>
+│   ├── <span class="dec">main.py</span>                  <span class="cm"># FastAPI app entry point</span>
+│   ├── <span class="dec">config.py</span>                <span class="cm"># Settings from env vars</span>
+│   ├── <span class="cl">api/</span>
+│   │   ├── <span class="dec">webhook.py</span>           <span class="cm"># POST /webhook — WhatsApp handler</span>
+│   │   ├── <span class="dec">dashboard.py</span>         <span class="cm"># GET endpoints for iOS app</span>
+│   │   └── <span class="dec">business.py</span>          <span class="cm"># Business setup / catalog upload</span>
+│   ├── <span class="cl">agents/</span>
+│   │   ├── <span class="dec">reply_agent.py</span>       <span class="cm"># Reply Agent — GPT-4o + RAG</span>
+│   │   ├── <span class="dec">followup_agent.py</span>    <span class="cm"># Follow-up Agent — scheduler</span>
+│   │   ├── <span class="dec">sales_agent.py</span>       <span class="cm"># Sales Agent — offer suggester</span>
+│   │   └── <span class="dec">base_agent.py</span>        <span class="cm"># Shared prompt builder / caller</span>
+│   ├── <span class="cl">services/</span>
+│   │   ├── <span class="dec">whatsapp.py</span>          <span class="cm"># Meta API send/receive helpers</span>
+│   │   ├── <span class="dec">openai_client.py</span>     <span class="cm"># OpenAI call wrapper</span>
+│   │   ├── <span class="dec">rag.py</span>               <span class="cm"># ChromaDB RAG pipeline</span>
+│   │   └── <span class="dec">scheduler.py</span>         <span class="cm"># APScheduler setup</span>
+│   ├── <span class="cl">models/</span>
+│   │   ├── <span class="dec">database.py</span>          <span class="cm"># SQLAlchemy engine + session</span>
+│   │   ├── <span class="dec">business.py</span>          <span class="cm"># Business model</span>
+│   │   ├── <span class="dec">customer.py</span>          <span class="cm"># Customer model</span>
+│   │   ├── <span class="dec">conversation.py</span>      <span class="cm"># Conversation + Message models</span>
+│   │   └── <span class="dec">lead.py</span>              <span class="cm"># Lead tracking model</span>
+│   └── <span class="cl">utils/</span>
+│       ├── <span class="dec">intent.py</span>            <span class="cm"># Intent classifier helper</span>
+│       └── <span class="dec">language.py</span>          <span class="cm"># Hindi/Hinglish text helpers</span>
+├── <span class="cl">migrations/</span>                  <span class="cm"># Alembic migration files</span>
+├── <span class="cl">chroma_db/</span>                   <span class="cm"># ChromaDB persistence folder</span>
+├── <span class="cl">ios/</span>                         <span class="cm"># WhatsApp CRM iOS app (Xcode)</span>
+│   └── WhatsAppCRM.xcodeproj
+├── <span class="dec">.env</span>                         <span class="cm"># Environment variables (never commit!)</span>
+├── <span class="dec">requirements.txt</span>
+├── <span class="dec">Dockerfile</span>
+├── <span class="dec">railway.json</span>
+└── <span class="dec">README.md</span></pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📦 requirements.txt</div>
+    <div class="code-wrap" style="margin-top:10px;margin-bottom:0;">
+      <div class="code-bar">
+        <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">requirements.txt</div></div>
+        <div class="code-lang">pip</div>
+      </div>
+<pre><span class="cm"># Core</span>
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-dotenv==1.0.1
+pydantic-settings==2.2.1
+httpx==0.27.0
+
+<span class="cm"># Database</span>
+sqlalchemy==2.0.29
+asyncpg==0.29.0
+alembic==1.13.1
+psycopg2-binary==2.9.9
+
+<span class="cm"># AI / RAG</span>
+openai==1.30.1
+chromadb==0.5.0
+tiktoken==0.7.0
+
+<span class="cm"># Scheduler</span>
+apscheduler==3.10.4
+
+<span class="cm"># Utils</span>
+python-multipart==0.0.9
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+sentry-sdk[fastapi]==2.3.0</pre>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 3: BACKEND CODE -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-backend">
+  <div class="sh">Backend Implementation <span class="badge-pill green">CODE</span></div>
+  <div class="sh-sub">Complete, production-ready Python code for every core component. Copy, adapt, ship.</div>
+
+  <!-- config.py -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/config.py</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> pydantic_settings <span class="kw">import</span> BaseSettings
+<span class="kw">from</span> functools <span class="kw">import</span> lru_cache
+
+<span class="kw">class</span> <span class="cl">Settings</span>(BaseSettings):
+    <span class="cm"># WhatsApp</span>
+    <span class="var">WHATSAPP_TOKEN</span>: str         <span class="cm"># Meta permanent access token</span>
+    <span class="var">WHATSAPP_VERIFY_TOKEN</span>: str  <span class="cm"># Custom string for webhook verification</span>
+    <span class="var">WHATSAPP_PHONE_ID</span>: str      <span class="cm"># Phone Number ID from Meta dashboard</span>
+
+    <span class="cm"># OpenAI</span>
+    <span class="var">OPENAI_API_KEY</span>: str
+    <span class="var">OPENAI_MODEL</span>: str = <span class="str">"gpt-4o"</span>
+    <span class="var">OPENAI_EMBED_MODEL</span>: str = <span class="str">"text-embedding-3-small"</span>
+
+    <span class="cm"># Database</span>
+    <span class="var">DATABASE_URL</span>: str            <span class="cm"># postgresql+asyncpg://user:pass@host/db</span>
+
+    <span class="cm"># App</span>
+    <span class="var">SECRET_KEY</span>: str = <span class="str">"change-me-in-prod"</span>
+    <span class="var">DEBUG</span>: bool = <span class="cl">False</span>
+    <span class="var">FOLLOWUP_HOURS</span>: int = <span class="num">24</span>    <span class="cm"># Default follow-up window</span>
+    <span class="var">CHROMA_PATH</span>: str = <span class="str">"./chroma_db"</span>
+
+    <span class="kw">class</span> <span class="cl">Config</span>:
+        env_file = <span class="str">".env"</span>
+
+<span class="dec">@lru_cache</span>()
+<span class="kw">def</span> <span class="fn">get_settings</span>() -> <span class="cl">Settings</span>:
+    <span class="kw">return</span> <span class="cl">Settings</span>()
+
+settings = <span class="fn">get_settings</span>()</pre>
+  </div>
+
+  <!-- main.py -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/main.py</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="cl">FastAPI</span>
+<span class="kw">from</span> fastapi.middleware.cors <span class="kw">import</span> <span class="cl">CORSMiddleware</span>
+<span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+<span class="kw">from</span> app.api <span class="kw">import</span> webhook, dashboard, business
+<span class="kw">from</span> app.models.database <span class="kw">import</span> init_db
+<span class="kw">from</span> app.services.scheduler <span class="kw">import</span> start_scheduler, stop_scheduler
+<span class="kw">import</span> sentry_sdk
+
+<span class="dec">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(app: <span class="cl">FastAPI</span>):
+    <span class="cm"># Startup</span>
+    <span class="kw">await</span> <span class="fn">init_db</span>()
+    <span class="fn">start_scheduler</span>()
+    <span class="kw">yield</span>
+    <span class="cm"># Shutdown</span>
+    <span class="fn">stop_scheduler</span>()
+
+app = <span class="cl">FastAPI</span>(
+    title=<span class="str">"WhatsApp CRM API"</span>,
+    version=<span class="str">"1.0.0"</span>,
+    lifespan=lifespan
+)
+
+app.<span class="fn">add_middleware</span>(
+    <span class="cl">CORSMiddleware</span>,
+    allow_origins=[<span class="str">"*"</span>],  <span class="cm"># Tighten in production</span>
+    allow_methods=[<span class="str">"*"</span>],
+    allow_headers=[<span class="str">"*"</span>],
+)
+
+<span class="cm"># Routers</span>
+app.<span class="fn">include_router</span>(webhook.router, prefix=<span class="str">"/webhook"</span>, tags=[<span class="str">"WhatsApp"</span>])
+app.<span class="fn">include_router</span>(dashboard.router, prefix=<span class="str">"/api/v1"</span>, tags=[<span class="str">"Dashboard"</span>])
+app.<span class="fn">include_router</span>(business.router, prefix=<span class="str">"/api/v1/business"</span>, tags=[<span class="str">"Business"</span>])
+
+<span class="dec">@app.get</span>(<span class="str">"/"</span>)
+<span class="kw">async def</span> <span class="fn">health</span>():
+    <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"running"</span>, <span class="str">"service"</span>: <span class="str">"WhatsApp CRM"</span>}</pre>
+  </div>
+
+  <!-- webhook.py -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/api/webhook.py</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="cl">APIRouter</span>, <span class="cl">Request</span>, <span class="cl">BackgroundTasks</span>, <span class="cl">HTTPException</span>, <span class="cl">Query</span>
+<span class="kw">from</span> app.config <span class="kw">import</span> settings
+<span class="kw">from</span> app.services.whatsapp <span class="kw">import</span> <span class="fn">parse_incoming_message</span>
+<span class="kw">from</span> app.services.pipeline <span class="kw">import</span> <span class="fn">process_message</span>
+<span class="kw">import</span> logging
+
+router = <span class="cl">APIRouter</span>()
+logger = logging.<span class="fn">getLogger</span>(__name__)
+
+<span class="cm"># ── GET: Meta webhook verification ──────────────────────────</span>
+<span class="dec">@router.get</span>(<span class="str">"/"</span>)
+<span class="kw">async def</span> <span class="fn">verify_webhook</span>(
+    hub_mode: str = <span class="cl">Query</span>(<span class="cl">None</span>, alias=<span class="str">"hub.mode"</span>),
+    hub_challenge: str = <span class="cl">Query</span>(<span class="cl">None</span>, alias=<span class="str">"hub.challenge"</span>),
+    hub_verify_token: str = <span class="cl">Query</span>(<span class="cl">None</span>, alias=<span class="str">"hub.verify_token"</span>),
+):
+    <span class="kw">if</span> hub_mode == <span class="str">"subscribe"</span> <span class="kw">and</span> hub_verify_token == settings.<span class="var">WHATSAPP_VERIFY_TOKEN</span>:
+        <span class="kw">return</span> <span class="cl">int</span>(hub_challenge)
+    <span class="kw">raise</span> <span class="cl">HTTPException</span>(status_code=<span class="num">403</span>, detail=<span class="str">"Invalid verify token"</span>)
+
+<span class="cm"># ── POST: Incoming WhatsApp messages ────────────────────────</span>
+<span class="dec">@router.post</span>(<span class="str">"/"</span>)
+<span class="kw">async def</span> <span class="fn">receive_message</span>(request: <span class="cl">Request</span>, bg: <span class="cl">BackgroundTasks</span>):
+    <span class="var">payload</span> = <span class="kw">await</span> request.<span class="fn">json</span>()
+
+    <span class="kw">try</span>:
+        <span class="cm"># Parse Meta webhook format</span>
+        <span class="var">entry</span> = payload.<span class="fn">get</span>(<span class="str">"entry"</span>, [{}])[<span class="num">0</span>]
+        <span class="var">changes</span> = <span class="var">entry</span>.<span class="fn">get</span>(<span class="str">"changes"</span>, [{}])[<span class="num">0</span>]
+        <span class="var">value</span> = <span class="var">changes</span>.<span class="fn">get</span>(<span class="str">"value"</span>, {})
+
+        <span class="cm"># Skip if not a message event (e.g. status updates)</span>
+        <span class="kw">if</span> <span class="str">"messages"</span> <span class="kw">not in</span> <span class="var">value</span>:
+            <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"ok"</span>, <span class="str">"skipped"</span>: <span class="cl">True</span>}
+
+        <span class="var">msg_data</span> = <span class="fn">parse_incoming_message</span>(<span class="var">value</span>)
+
+        <span class="cm"># Process in background — return 200 immediately to Meta</span>
+        bg.<span class="fn">add_task</span>(<span class="fn">process_message</span>, <span class="var">msg_data</span>)
+
+    <span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+        logger.<span class="fn">error</span>(<span class="str">f"Webhook error: {e}"</span>, exc_info=<span class="cl">True</span>)
+
+    <span class="cm"># Always return 200 to Meta (prevents retries)</span>
+    <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"ok"</span>}</pre>
+  </div>
+
+  <!-- whatsapp.py -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/services/whatsapp.py</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">import</span> httpx
+<span class="kw">from</span> app.config <span class="kw">import</span> settings
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> Optional
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cl">IncomingMessage</span>:
+    phone: str
+    name: str
+    text: str
+    message_id: str
+    timestamp: int
+
+<span class="kw">def</span> <span class="fn">parse_incoming_message</span>(value: dict) -> <span class="cl">IncomingMessage</span>:
+    <span class="var">msg</span> = value[<span class="str">"messages"</span>][<span class="num">0</span>]
+    <span class="var">contact</span> = value.<span class="fn">get</span>(<span class="str">"contacts"</span>, [{}])[<span class="num">0</span>]
+    <span class="kw">return</span> <span class="cl">IncomingMessage</span>(
+        phone=<span class="var">msg</span>[<span class="str">"from"</span>],
+        name=<span class="var">contact</span>.<span class="fn">get</span>(<span class="str">"profile"</span>, {}).<span class="fn">get</span>(<span class="str">"name"</span>, <span class="str">"Customer"</span>),
+        text=<span class="var">msg</span>.<span class="fn">get</span>(<span class="str">"text"</span>, {}).<span class="fn">get</span>(<span class="str">"body"</span>, <span class="str">""</span>),
+        message_id=<span class="var">msg</span>[<span class="str">"id"</span>],
+        timestamp=<span class="cl">int</span>(<span class="var">msg</span>[<span class="str">"timestamp"</span>])
+    )
+
+<span class="kw">async def</span> <span class="fn">send_whatsapp_message</span>(to_phone: str, text: str) -> bool:
+    <span class="var">url</span> = <span class="str">f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_ID}/messages"</span>
+    <span class="var">headers</span> = {
+        <span class="str">"Authorization"</span>: <span class="str">f"Bearer {settings.WHATSAPP_TOKEN}"</span>,
+        <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span>
+    }
+    <span class="var">payload</span> = {
+        <span class="str">"messaging_product"</span>: <span class="str">"whatsapp"</span>,
+        <span class="str">"to"</span>: to_phone,
+        <span class="str">"type"</span>: <span class="str">"text"</span>,
+        <span class="str">"text"</span>: {<span class="str">"body"</span>: text}
+    }
+    <span class="kw">async with</span> httpx.<span class="cl">AsyncClient</span>() <span class="kw">as</span> client:
+        <span class="var">resp</span> = <span class="kw">await</span> client.<span class="fn">post</span>(<span class="var">url</span>, json=<span class="var">payload</span>, headers=<span class="var">headers</span>)
+        <span class="kw">return</span> <span class="var">resp</span>.status_code == <span class="num">200</span>
+
+<span class="kw">async def</span> <span class="fn">send_typing_indicator</span>(to_phone: str):
+    <span class="cm">"""Send 'typing...' status so the customer knows AI is processing."""</span>
+    <span class="cm"># Mark message as read first — best practice</span>
+    <span class="kw">pass</span>  <span class="cm"># Implement if needed</span></pre>
+  </div>
+
+  <!-- pipeline.py -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/services/pipeline.py — Core Message Pipeline</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> app.services.whatsapp <span class="kw">import</span> <span class="cl">IncomingMessage</span>, <span class="fn">send_whatsapp_message</span>
+<span class="kw">from</span> app.agents.reply_agent <span class="kw">import</span> <span class="cl">ReplyAgent</span>
+<span class="kw">from</span> app.agents.sales_agent <span class="kw">import</span> <span class="cl">SalesAgent</span>
+<span class="kw">from</span> app.agents.followup_agent <span class="kw">import</span> <span class="fn">schedule_followup</span>, <span class="fn">cancel_followup</span>
+<span class="kw">from</span> app.models.customer <span class="kw">import</span> <span class="fn">get_or_create_customer</span>
+<span class="kw">from</span> app.models.conversation <span class="kw">import</span> <span class="fn">get_conversation_history</span>, <span class="fn">save_message</span>
+<span class="kw">from</span> app.models.lead <span class="kw">import</span> <span class="fn">upsert_lead</span>
+<span class="kw">from</span> app.utils.intent <span class="kw">import</span> <span class="fn">classify_intent</span>
+<span class="kw">import</span> logging
+
+logger = logging.<span class="fn">getLogger</span>(__name__)
+
+<span class="kw">async def</span> <span class="fn">process_message</span>(msg: <span class="cl">IncomingMessage</span>):
+    <span class="cm">"""
+    Main pipeline: WhatsApp message → AI response.
+    Runs as a FastAPI background task.
+    """</span>
+    <span class="kw">try</span>:
+        <span class="cm"># 1. Upsert customer record</span>
+        <span class="var">customer</span> = <span class="kw">await</span> <span class="fn">get_or_create_customer</span>(
+            phone=msg.phone, name=msg.name
+        )
+
+        <span class="cm"># 2. Save incoming message to DB</span>
+        <span class="kw">await</span> <span class="fn">save_message</span>(
+            customer_id=<span class="var">customer</span>.id,
+            role=<span class="str">"user"</span>,
+            content=msg.text,
+            timestamp=msg.timestamp
+        )
+
+        <span class="cm"># 3. Cancel any pending follow-up (they replied!)</span>
+        <span class="kw">await</span> <span class="fn">cancel_followup</span>(<span class="var">customer</span>.id)
+
+        <span class="cm"># 4. Classify intent (quick, no LLM call)</span>
+        <span class="var">intent</span> = <span class="fn">classify_intent</span>(msg.text)
+        logger.<span class="fn">info</span>(<span class="str">f"Customer {msg.phone} | Intent: {intent}"</span>)
+
+        <span class="cm"># 5. Build conversation history (last 10 messages)</span>
+        <span class="var">history</span> = <span class="kw">await</span> <span class="fn">get_conversation_history</span>(<span class="var">customer</span>.id, limit=<span class="num">10</span>)
+
+        <span class="cm"># 6. Run Reply Agent → generates response</span>
+        <span class="var">reply_agent</span> = <span class="cl">ReplyAgent</span>(business_id=<span class="var">customer</span>.business_id)
+        <span class="var">response_text</span> = <span class="kw">await</span> <span class="var">reply_agent</span>.<span class="fn">run</span>(
+            customer_message=msg.text,
+            history=<span class="var">history</span>,
+            customer_name=<span class="var">customer</span>.name,
+            intent=<span class="var">intent</span>
+        )
+
+        <span class="cm"># 7. Sales Agent: append offer if purchase intent</span>
+        <span class="kw">if</span> intent <span class="kw">in</span> [<span class="str">"purchase"</span>, <span class="str">"price_inquiry"</span>]:
+            <span class="var">sales_agent</span> = <span class="cl">SalesAgent</span>(business_id=<span class="var">customer</span>.business_id)
+            <span class="var">offer</span> = <span class="kw">await</span> <span class="var">sales_agent</span>.<span class="fn">get_offer</span>(msg.text)
+            <span class="kw">if</span> <span class="var">offer</span>:
+                <span class="var">response_text</span> += <span class="str">f"\n\n{offer}"</span>
+
+        <span class="cm"># 8. Send reply via WhatsApp</span>
+        <span class="kw">await</span> <span class="fn">send_whatsapp_message</span>(msg.phone, <span class="var">response_text</span>)
+
+        <span class="cm"># 9. Save AI response to DB</span>
+        <span class="kw">await</span> <span class="fn">save_message</span>(
+            customer_id=<span class="var">customer</span>.id,
+            role=<span class="str">"assistant"</span>,
+            content=<span class="var">response_text</span>
+        )
+
+        <span class="cm"># 10. Update lead score + schedule follow-up</span>
+        <span class="kw">await</span> <span class="fn">upsert_lead</span>(<span class="var">customer</span>.id, intent=<span class="var">intent</span>)
+        <span class="kw">await</span> <span class="fn">schedule_followup</span>(<span class="var">customer</span>.id, msg.phone, intent=<span class="var">intent</span>)
+
+    <span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+        logger.<span class="fn">error</span>(<span class="str">f"Pipeline error for {msg.phone}: {e}"</span>, exc_info=<span class="cl">True</span>)</pre>
+  </div>
+
+  <!-- dashboard.py -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/api/dashboard.py — iOS App REST Endpoints</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="cl">APIRouter</span>, <span class="cl">Depends</span>
+<span class="kw">from</span> sqlalchemy.ext.asyncio <span class="kw">import</span> <span class="cl">AsyncSession</span>
+<span class="kw">from</span> app.models.database <span class="kw">import</span> <span class="fn">get_db</span>
+<span class="kw">from</span> app.models <span class="kw">import</span> customer, conversation, lead
+
+router = <span class="cl">APIRouter</span>()
+
+<span class="dec">@router.get</span>(<span class="str">"/stats"</span>)
+<span class="kw">async def</span> <span class="fn">get_dashboard_stats</span>(
+    business_id: str,
+    db: <span class="cl">AsyncSession</span> = <span class="cl">Depends</span>(<span class="fn">get_db</span>)
+):
+    <span class="cm">"""Summary stats for dashboard home screen."""</span>
+    <span class="kw">return</span> {
+        <span class="str">"total_customers"</span>: <span class="kw">await</span> customer.<span class="fn">count_by_business</span>(db, business_id),
+        <span class="str">"total_conversations_today"</span>: <span class="kw">await</span> conversation.<span class="fn">count_today</span>(db, business_id),
+        <span class="str">"hot_leads"</span>: <span class="kw">await</span> lead.<span class="fn">count_by_status</span>(db, business_id, <span class="str">"hot"</span>),
+        <span class="str">"pending_followups"</span>: <span class="kw">await</span> lead.<span class="fn">count_pending_followups</span>(db, business_id),
+    }
+
+<span class="dec">@router.get</span>(<span class="str">"/customers"</span>)
+<span class="kw">async def</span> <span class="fn">list_customers</span>(
+    business_id: str, page: int = <span class="num">1</span>,
+    db: <span class="cl">AsyncSession</span> = <span class="cl">Depends</span>(<span class="fn">get_db</span>)
+):
+    <span class="kw">return</span> <span class="kw">await</span> customer.<span class="fn">get_paginated</span>(db, business_id, page)
+
+<span class="dec">@router.get</span>(<span class="str">"/customers/{customer_id}/messages"</span>)
+<span class="kw">async def</span> <span class="fn">get_chat_history</span>(
+    customer_id: str,
+    db: <span class="cl">AsyncSession</span> = <span class="cl">Depends</span>(<span class="fn">get_db</span>)
+):
+    <span class="kw">return</span> <span class="kw">await</span> conversation.<span class="fn">get_full_history</span>(db, customer_id)
+
+<span class="dec">@router.get</span>(<span class="str">"/leads"</span>)
+<span class="kw">async def</span> <span class="fn">list_leads</span>(
+    business_id: str, status: str = <span class="str">"all"</span>,
+    db: <span class="cl">AsyncSession</span> = <span class="cl">Depends</span>(<span class="fn">get_db</span>)
+):
+    <span class="kw">return</span> <span class="kw">await</span> lead.<span class="fn">get_leads</span>(db, business_id, status)
+
+<span class="dec">@router.post</span>(<span class="str">"/manual-reply"</span>)
+<span class="kw">async def</span> <span class="fn">send_manual_reply</span>(body: dict):
+    <span class="cm">"""Owner sends manual message from iOS app, bypassing AI."""</span>
+    <span class="kw">from</span> app.services.whatsapp <span class="kw">import</span> <span class="fn">send_whatsapp_message</span>
+    ok = <span class="kw">await</span> <span class="fn">send_whatsapp_message</span>(body[<span class="str">"phone"</span>], body[<span class="str">"text"</span>])
+    <span class="kw">return</span> {<span class="str">"sent"</span>: ok}
+
+<span class="dec">@router.post</span>(<span class="str">"/pause-ai/{customer_id}"</span>)
+<span class="kw">async def</span> <span class="fn">pause_ai_for_customer</span>(customer_id: str, db: <span class="cl">AsyncSession</span> = <span class="cl">Depends</span>(<span class="fn">get_db</span>)):
+    <span class="cm">"""Owner takes over — AI stops auto-replying to this customer."""</span>
+    <span class="kw">await</span> customer.<span class="fn">set_ai_paused</span>(db, customer_id, paused=<span class="cl">True</span>)
+    <span class="kw">return</span> {<span class="str">"paused"</span>: <span class="cl">True</span>}</pre>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 4: AI AGENTS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-agents">
+  <div class="sh">AI Agent Design <span class="badge-pill purple">AGENTS</span></div>
+  <div class="sh-sub">Full implementation of all three agents: Reply, Follow-up, and Sales. Includes prompt engineering strategy.</div>
+
+  <!-- Reply Agent -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/agents/reply_agent.py — The Core AI Brain</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> openai <span class="kw">import</span> AsyncOpenAI
+<span class="kw">from</span> app.config <span class="kw">import</span> settings
+<span class="kw">from</span> app.services.rag <span class="kw">import</span> <span class="cl">BusinessRAG</span>
+<span class="kw">from</span> typing <span class="kw">import</span> List, Dict
+
+client = <span class="fn">AsyncOpenAI</span>(api_key=settings.<span class="var">OPENAI_API_KEY</span>)
+
+<span class="kw">class</span> <span class="cl">ReplyAgent</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, business_id: str):
+        self.business_id = business_id
+        self.rag = <span class="cl">BusinessRAG</span>(business_id)
+
+    <span class="kw">async def</span> <span class="fn">run</span>(
+        self,
+        customer_message: str,
+        history: List[Dict],
+        customer_name: str,
+        intent: str
+    ) -> str:
+        <span class="cm"># Fetch relevant business knowledge via RAG</span>
+        <span class="var">context</span> = <span class="kw">await</span> self.rag.<span class="fn">query</span>(customer_message, top_k=<span class="num">4</span>)
+
+        <span class="cm"># Build the system prompt</span>
+        <span class="var">system_prompt</span> = self.<span class="fn">_build_system_prompt</span>(<span class="var">context</span>)
+
+        <span class="cm"># Build message chain: system + history + new user message</span>
+        <span class="var">messages</span> = [
+            {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="var">system_prompt</span>},
+            *<span class="var">history</span>,  <span class="cm"># Last 10 messages from DB</span>
+            {<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: customer_message}
+        ]
+
+        <span class="var">response</span> = <span class="kw">await</span> client.chat.completions.<span class="fn">create</span>(
+            model=settings.<span class="var">OPENAI_MODEL</span>,
+            messages=<span class="var">messages</span>,
+            max_tokens=<span class="num">300</span>,
+            temperature=<span class="num">0.7</span>,
+        )
+        <span class="kw">return</span> <span class="var">response</span>.choices[<span class="num">0</span>].message.content.<span class="fn">strip</span>()
+
+    <span class="kw">def</span> <span class="fn">_build_system_prompt</span>(self, rag_context: str) -> str:
+        <span class="kw">return</span> <span class="str">f"""You are a helpful WhatsApp assistant for a local Indian business.
+
+ROLE:
+- You reply on behalf of the business owner
+- You are friendly, warm, and professional
+- Speak in Hinglish (mix of Hindi and English) unless customer uses Bengali
+
+LANGUAGE RULES:
+- Default: Hinglish (e.g., "Aapka jacket ₹850 mein milega!")
+- If customer writes in Hindi → reply in Hindi
+- If customer writes in English → reply in English
+- Never use formal/robotic language. Sound like a real shopkeeper.
+- Use "Aap" for respect, not "Tum"
+- End responses with a helpful question or call to action
+
+TONE EXAMPLES:
+✅ Good: "Haan ji! Yeh wali jacket abhi available hai, ₹850 mein. Aapko kaisa size chahiye?"
+❌ Bad: "Yes, the jacket is available at Rs. 850. Please let me know your size requirements."
+
+BUSINESS KNOWLEDGE (use this to answer questions):
+{rag_context}
+
+IMPORTANT RULES:
+1. Never make up prices or products not in the knowledge base
+2. If you don't know something, say "Main abhi check karke batata hoon"
+3. Never promise delivery dates you can't confirm
+4. Keep replies SHORT — 2-4 sentences max (WhatsApp readers)
+5. If customer seems ready to buy, ask for their address/size/preference to close"""</span></pre>
+  </div>
+
+  <!-- RAG Service -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/services/rag.py — Business Knowledge RAG Pipeline</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">import</span> chromadb
+<span class="kw">from</span> openai <span class="kw">import</span> AsyncOpenAI
+<span class="kw">from</span> app.config <span class="kw">import</span> settings
+<span class="kw">from</span> typing <span class="kw">import</span> List
+
+client = <span class="fn">AsyncOpenAI</span>(api_key=settings.<span class="var">OPENAI_API_KEY</span>)
+
+<span class="kw">class</span> <span class="cl">BusinessRAG</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, business_id: str):
+        self.business_id = business_id
+        <span class="cm"># Each business gets its own ChromaDB collection</span>
+        self.chroma = chromadb.<span class="fn">PersistentClient</span>(path=settings.<span class="var">CHROMA_PATH</span>)
+        self.collection = self.chroma.<span class="fn">get_or_create_collection</span>(
+            name=<span class="str">f"business_{business_id}"</span>,
+            metadata={<span class="str">"hnsw:space"</span>: <span class="str">"cosine"</span>}
+        )
+
+    <span class="kw">async def</span> <span class="fn">query</span>(self, text: str, top_k: int = <span class="num">4</span>) -> str:
+        <span class="cm">"""Query business knowledge for relevant context."""</span>
+        <span class="kw">if</span> self.collection.<span class="fn">count</span>() == <span class="num">0</span>:
+            <span class="kw">return</span> <span class="str">"No business knowledge loaded yet."</span>
+
+        <span class="cm"># Get embedding for query</span>
+        <span class="var">embed_resp</span> = <span class="kw">await</span> client.embeddings.<span class="fn">create</span>(
+            input=text,
+            model=settings.<span class="var">OPENAI_EMBED_MODEL</span>
+        )
+        <span class="var">query_embedding</span> = <span class="var">embed_resp</span>.data[<span class="num">0</span>].embedding
+
+        <span class="cm"># Search ChromaDB</span>
+        <span class="var">results</span> = self.collection.<span class="fn">query</span>(
+            query_embeddings=[<span class="var">query_embedding</span>],
+            n_results=<span class="fn">min</span>(top_k, self.collection.<span class="fn">count</span>())
+        )
+
+        <span class="cm"># Format results into context string</span>
+        <span class="var">docs</span> = <span class="var">results</span>[<span class="str">"documents"</span>][<span class="num">0</span>]
+        <span class="kw">return</span> <span class="str">"\n---\n"</span>.<span class="fn">join</span>(<span class="var">docs</span>)
+
+    <span class="kw">async def</span> <span class="fn">ingest_catalog</span>(self, items: List[Dict]):
+        <span class="cm">"""Upload business product catalog / FAQs to ChromaDB."""</span>
+        <span class="var">texts</span>, <span class="var">ids</span>, <span class="var">metas</span> = [], [], []
+
+        <span class="kw">for</span> i, item <span class="kw">in</span> <span class="fn">enumerate</span>(items):
+            <span class="cm"># Format each item as searchable text</span>
+            <span class="var">text</span> = <span class="str">f"""Product: {item['name']}
+Price: ₹{item['price']}
+Description: {item['description']}
+Category: {item.get('category', 'General')}
+Available: {item.get('available', True)}"""</span>
+            <span class="var">texts</span>.<span class="fn">append</span>(<span class="var">text</span>)
+            <span class="var">ids</span>.<span class="fn">append</span>(<span class="str">f"{self.business_id}_{i}"</span>)
+            <span class="var">metas</span>.<span class="fn">append</span>({<span class="str">"type"</span>: <span class="str">"product"</span>, <span class="str">"name"</span>: item[<span class="str">"name"</span>]})
+
+        <span class="cm"># Embed all texts at once (batch call)</span>
+        <span class="var">embed_resp</span> = <span class="kw">await</span> client.embeddings.<span class="fn">create</span>(
+            input=<span class="var">texts</span>, model=settings.<span class="var">OPENAI_EMBED_MODEL</span>
+        )
+        <span class="var">embeddings</span> = [d.embedding <span class="kw">for</span> d <span class="kw">in</span> <span class="var">embed_resp</span>.data]
+
+        self.collection.<span class="fn">upsert</span>(
+            documents=<span class="var">texts</span>, embeddings=<span class="var">embeddings</span>,
+            ids=<span class="var">ids</span>, metadatas=<span class="var">metas</span>
+        )
+        <span class="kw">return</span> {<span class="str">"ingested"</span>: <span class="fn">len</span>(<span class="var">texts</span>)}</pre>
+  </div>
+
+  <!-- Follow-up Agent -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/agents/followup_agent.py — Automated Re-engagement</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> apscheduler.schedulers.asyncio <span class="kw">import</span> <span class="cl">AsyncIOScheduler</span>
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timedelta
+<span class="kw">from</span> openai <span class="kw">import</span> AsyncOpenAI
+<span class="kw">from</span> app.config <span class="kw">import</span> settings
+<span class="kw">from</span> app.services.whatsapp <span class="kw">import</span> <span class="fn">send_whatsapp_message</span>
+
+client = <span class="fn">AsyncOpenAI</span>(api_key=settings.<span class="var">OPENAI_API_KEY</span>)
+scheduler = <span class="cl">AsyncIOScheduler</span>()
+
+<span class="cm">FOLLOWUP_TEMPLATES = {
+    "purchase": "Namaste {name}! Aapne jo {product} ke baare mein poochhha tha — kya aap abhi order karna chahenge? 😊",
+    "price_inquiry": "Haan ji {name}! Woh offer abhi bhi available hai. Kya main aapki madad kar sakta hoon?",
+    "general": "Namaste {name}! Kya aapko koi aur help chahiye? Hum yahaan hain! 🙏",
+}</span>
+
+<span class="kw">async def</span> <span class="fn">schedule_followup</span>(customer_id: str, phone: str, intent: str):
+    <span class="cm">"""Schedule a follow-up if customer goes quiet."""</span>
+    job_id = <span class="str">f"followup_{customer_id}"</span>
+
+    <span class="cm"># Remove existing follow-up if any</span>
+    <span class="kw">if</span> scheduler.<span class="fn">get_job</span>(job_id):
+        scheduler.<span class="fn">remove_job</span>(job_id)
+
+    <span class="cm"># Only follow up on purchase/inquiry intents</span>
+    <span class="kw">if</span> intent <span class="kw">not in</span> [<span class="str">"purchase"</span>, <span class="str">"price_inquiry"</span>, <span class="str">"general"</span>]:
+        <span class="kw">return</span>
+
+    <span class="var">run_time</span> = datetime.<span class="fn">now</span>() + timedelta(hours=settings.<span class="var">FOLLOWUP_HOURS</span>)
+    scheduler.<span class="fn">add_job</span>(
+        <span class="fn">send_followup_message</span>,
+        trigger=<span class="str">"date"</span>,
+        run_date=<span class="var">run_time</span>,
+        args=[phone, intent],
+        id=job_id,
+        replace_existing=<span class="cl">True</span>
+    )
+
+<span class="kw">async def</span> <span class="fn">cancel_followup</span>(customer_id: str):
+    <span class="cm">"""Cancel follow-up when customer replies (they're active again)."""</span>
+    job_id = <span class="str">f"followup_{customer_id}"</span>
+    <span class="kw">if</span> scheduler.<span class="fn">get_job</span>(job_id):
+        scheduler.<span class="fn">remove_job</span>(job_id)
+
+<span class="kw">async def</span> <span class="fn">send_followup_message</span>(phone: str, intent: str):
+    <span class="cm">"""Generate and send a personalized follow-up via AI."""</span>
+    <span class="var">prompt</span> = <span class="str">f"""Write a short, warm WhatsApp follow-up message in Hinglish.
+Context: Customer showed {intent} intent but went quiet.
+Rules: Max 2 sentences. Friendly. Not pushy. End with a question.
+Example: "Namaste! Kya aap abhi bhi jacket mein interested hain? 😊""""</span>
+
+    <span class="var">resp</span> = <span class="kw">await</span> client.chat.completions.<span class="fn">create</span>(
+        model=<span class="str">"gpt-4o"</span>,
+        messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="var">prompt</span>}],
+        max_tokens=<span class="num">100</span>
+    )
+    <span class="var">message</span> = <span class="var">resp</span>.choices[<span class="num">0</span>].message.content.<span class="fn">strip</span>()
+    <span class="kw">await</span> <span class="fn">send_whatsapp_message</span>(phone, <span class="var">message</span>)
+
+<span class="kw">def</span> <span class="fn">start_scheduler</span>(): scheduler.<span class="fn">start</span>()
+<span class="kw">def</span> <span class="fn">stop_scheduler</span>(): scheduler.<span class="fn">shutdown</span>(wait=<span class="cl">False</span>)</pre>
+  </div>
+
+  <!-- Intent Classifier -->
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/utils/intent.py — Fast Keyword-Based Intent Classifier</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="cm">"""
+Fast, zero-cost intent classifier using keyword matching.
+Use this BEFORE the GPT call to avoid unnecessary API costs.
+Handles Hinglish + Hindi + English keywords.
+"""</span>
+
+<span class="var">INTENT_KEYWORDS</span> = {
+    <span class="str">"purchase"</span>: [
+        <span class="str">"order"</span>, <span class="str">"buy"</span>, <span class="str">"khareedna"</span>, <span class="str">"chahiye"</span>, <span class="str">"lena hai"</span>,
+        <span class="str">"book"</span>, <span class="str">"confirm"</span>, <span class="str">"place order"</span>, <span class="str">"ready"</span>
+    ],
+    <span class="str">"price_inquiry"</span>: [
+        <span class="str">"price"</span>, <span class="str">"kitna"</span>, <span class="str">"rate"</span>, <span class="str">"cost"</span>, <span class="str">"daam"</span>,
+        <span class="str">"rupee"</span>, <span class="str">"₹"</span>, <span class="str">"discount"</span>, <span class="str">"offer"</span>, <span class="str">"cheap"</span>
+    ],
+    <span class="str">"complaint"</span>: [
+        <span class="str">"problem"</span>, <span class="str">"issue"</span>, <span class="str">"wrong"</span>, <span class="str">"refund"</span>, <span class="str">"return"</span>,
+        <span class="str">"damage"</span>, <span class="str">"bura"</span>, <span class="str">"complaint"</span>, <span class="str">"angry"</span>, <span class="str">"worst"</span>
+    ],
+    <span class="str">"hours"</span>: [
+        <span class="str">"open"</span>, <span class="str">"close"</span>, <span class="str">"time"</span>, <span class="str">"timing"</span>, <span class="str">"kab"</span>,
+        <span class="str">"khula"</span>, <span class="str">"band"</span>, <span class="str">"sunday"</span>, <span class="str">"holiday"</span>
+    ],
+    <span class="str">"greeting"</span>: [
+        <span class="str">"hello"</span>, <span class="str">"hi"</span>, <span class="str">"namaste"</span>, <span class="str">"haan"</span>, <span class="str">"hey"</span>,
+        <span class="str">"good morning"</span>, <span class="str">"bhai"</span>, <span class="str">"bhaiya"</span>
+    ],
+}
+
+<span class="kw">def</span> <span class="fn">classify_intent</span>(text: str) -> str:
+    <span class="var">text_lower</span> = text.<span class="fn">lower</span>()
+    <span class="kw">for</span> intent, keywords <span class="kw">in</span> <span class="var">INTENT_KEYWORDS</span>.<span class="fn">items</span>():
+        <span class="kw">if</span> <span class="fn">any</span>(kw <span class="kw">in</span> <span class="var">text_lower</span> <span class="kw">for</span> kw <span class="kw">in</span> keywords):
+            <span class="kw">return</span> intent
+    <span class="kw">return</span> <span class="str">"general"</span>  <span class="cm"># default fallback</span></pre>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 5: DATABASE -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-database">
+  <div class="sh">Database Schema <span class="badge-pill orange">DATABASE</span></div>
+  <div class="sh-sub">PostgreSQL schema with multi-tenant support. Every table has business_id from day one.</div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">app/models/database.py — Full Schema (SQLAlchemy)</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">from</span> sqlalchemy <span class="kw">import</span> (
+    Column, String, Integer, Text, Boolean, DateTime, Float,
+    ForeignKey, Enum, func
+)
+<span class="kw">from</span> sqlalchemy.orm <span class="kw">import</span> declarative_base, relationship
+<span class="kw">from</span> sqlalchemy.ext.asyncio <span class="kw">import</span> create_async_engine, AsyncSession
+<span class="kw">from</span> sqlalchemy.orm <span class="kw">import</span> sessionmaker
+<span class="kw">from</span> app.config <span class="kw">import</span> settings
+<span class="kw">import</span> uuid
+
+<span class="var">Base</span> = <span class="fn">declarative_base</span>()
+engine = <span class="fn">create_async_engine</span>(settings.<span class="var">DATABASE_URL</span>, echo=settings.<span class="var">DEBUG</span>)
+<span class="var">AsyncSessionLocal</span> = <span class="fn">sessionmaker</span>(engine, class_=<span class="cl">AsyncSession</span>, expire_on_commit=<span class="cl">False</span>)
+
+<span class="kw">async def</span> <span class="fn">get_db</span>():
+    <span class="kw">async with</span> <span class="cl">AsyncSessionLocal</span>() <span class="kw">as</span> session:
+        <span class="kw">yield</span> session
+
+<span class="kw">async def</span> <span class="fn">init_db</span>():
+    <span class="kw">async with</span> engine.<span class="fn">begin</span>() <span class="kw">as</span> conn:
+        <span class="kw">await</span> conn.<span class="fn">run_sync</span>(<span class="var">Base</span>.metadata.<span class="fn">create_all</span>)
+
+<span class="cm"># ── BUSINESS (one per client you onboard) ──────────────────</span>
+<span class="kw">class</span> <span class="cl">Business</span>(<span class="var">Base</span>):
+    __tablename__ = <span class="str">"businesses"</span>
+    id = <span class="cl">Column</span>(<span class="cl">String</span>, primary_key=<span class="cl">True</span>, default=<span class="kw">lambda</span>: <span class="fn">str</span>(uuid.<span class="fn">uuid4</span>()))
+    name = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">200</span>), nullable=<span class="cl">False</span>)
+    phone_number = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">20</span>), unique=<span class="cl">True</span>)
+    whatsapp_phone_id = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">100</span>))
+    business_type = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">50</span>))  <span class="cm"># clothing/salon/restaurant</span>
+    language = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">20</span>), default=<span class="str">"hinglish"</span>)
+    ai_active = <span class="cl">Column</span>(<span class="cl">Boolean</span>, default=<span class="cl">True</span>)
+    followup_hours = <span class="cl">Column</span>(<span class="cl">Integer</span>, default=<span class="num">24</span>)
+    owner_email = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">200</span>))
+    created_at = <span class="cl">Column</span>(<span class="cl">DateTime</span>, default=<span class="fn">func.now</span>())
+
+<span class="cm"># ── CUSTOMER ───────────────────────────────────────────────</span>
+<span class="kw">class</span> <span class="cl">Customer</span>(<span class="var">Base</span>):
+    __tablename__ = <span class="str">"customers"</span>
+    id = <span class="cl">Column</span>(<span class="cl">String</span>, primary_key=<span class="cl">True</span>, default=<span class="kw">lambda</span>: <span class="fn">str</span>(uuid.<span class="fn">uuid4</span>()))
+    business_id = <span class="cl">Column</span>(<span class="cl">String</span>, <span class="cl">ForeignKey</span>(<span class="str">"businesses.id"</span>), index=<span class="cl">True</span>)
+    phone = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">20</span>), nullable=<span class="cl">False</span>)
+    name = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">200</span>))
+    ai_paused = <span class="cl">Column</span>(<span class="cl">Boolean</span>, default=<span class="cl">False</span>)  <span class="cm"># owner took over</span>
+    first_seen = <span class="cl">Column</span>(<span class="cl">DateTime</span>, default=<span class="fn">func.now</span>())
+    last_seen = <span class="cl">Column</span>(<span class="cl">DateTime</span>, default=<span class="fn">func.now</span>())
+    total_messages = <span class="cl">Column</span>(<span class="cl">Integer</span>, default=<span class="num">0</span>)
+    messages = <span class="fn">relationship</span>(<span class="str">"Message"</span>, back_populates=<span class="str">"customer"</span>)
+
+<span class="cm"># ── MESSAGE ────────────────────────────────────────────────</span>
+<span class="kw">class</span> <span class="cl">Message</span>(<span class="var">Base</span>):
+    __tablename__ = <span class="str">"messages"</span>
+    id = <span class="cl">Column</span>(<span class="cl">String</span>, primary_key=<span class="cl">True</span>, default=<span class="kw">lambda</span>: <span class="fn">str</span>(uuid.<span class="fn">uuid4</span>()))
+    customer_id = <span class="cl">Column</span>(<span class="cl">String</span>, <span class="cl">ForeignKey</span>(<span class="str">"customers.id"</span>), index=<span class="cl">True</span>)
+    business_id = <span class="cl">Column</span>(<span class="cl">String</span>, <span class="cl">ForeignKey</span>(<span class="str">"businesses.id"</span>))
+    role = <span class="cl">Column</span>(<span class="cl">Enum</span>(<span class="str">"user"</span>, <span class="str">"assistant"</span>, name=<span class="str">"role_enum"</span>))
+    content = <span class="cl">Column</span>(<span class="cl">Text</span>, nullable=<span class="cl">False</span>)
+    is_manual = <span class="cl">Column</span>(<span class="cl">Boolean</span>, default=<span class="cl">False</span>)  <span class="cm"># owner sent manually?</span>
+    created_at = <span class="cl">Column</span>(<span class="cl">DateTime</span>, default=<span class="fn">func.now</span>())
+    customer = <span class="fn">relationship</span>(<span class="str">"Customer"</span>, back_populates=<span class="str">"messages"</span>)
+
+<span class="cm"># ── LEAD ───────────────────────────────────────────────────</span>
+<span class="kw">class</span> <span class="cl">Lead</span>(<span class="var">Base</span>):
+    __tablename__ = <span class="str">"leads"</span>
+    id = <span class="cl">Column</span>(<span class="cl">String</span>, primary_key=<span class="cl">True</span>, default=<span class="kw">lambda</span>: <span class="fn">str</span>(uuid.<span class="fn">uuid4</span>()))
+    customer_id = <span class="cl">Column</span>(<span class="cl">String</span>, <span class="cl">ForeignKey</span>(<span class="str">"customers.id"</span>), unique=<span class="cl">True</span>)
+    business_id = <span class="cl">Column</span>(<span class="cl">String</span>, <span class="cl">ForeignKey</span>(<span class="str">"businesses.id"</span>), index=<span class="cl">True</span>)
+    status = <span class="cl">Column</span>(<span class="cl">Enum</span>(<span class="str">"hot"</span>, <span class="str">"warm"</span>, <span class="str">"cold"</span>, name=<span class="str">"lead_status"</span>), default=<span class="str">"warm"</span>)
+    intent = <span class="cl">Column</span>(<span class="cl">String</span>(<span class="num">50</span>))
+    score = <span class="cl">Column</span>(<span class="cl">Integer</span>, default=<span class="num">50</span>)  <span class="cm"># 0–100</span>
+    followup_scheduled = <span class="cl">Column</span>(<span class="cl">Boolean</span>, default=<span class="cl">False</span>)
+    followup_sent_at = <span class="cl">Column</span>(<span class="cl">DateTime</span>)
+    converted = <span class="cl">Column</span>(<span class="cl">Boolean</span>, default=<span class="cl">False</span>)
+    updated_at = <span class="cl">Column</span>(<span class="cl">DateTime</span>, default=<span class="fn">func.now</span>(), onupdate=<span class="fn">func.now</span>())</pre>
+  </div>
+
+  <div class="card accent-blue">
+    <div class="card-title">📋 Lead Scoring Logic</div>
+    <table class="t" style="margin-bottom:0;">
+      <thead><tr><th>Intent</th><th>Lead Status</th><th>Score</th><th>Follow-up Timing</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pt g">purchase</span></td><td>🔴 Hot</td><td>85–100</td><td>12 hours</td></tr>
+        <tr><td><span class="pt b">price_inquiry</span></td><td>🟠 Warm</td><td>60–84</td><td>24 hours</td></tr>
+        <tr><td><span class="pt o">general</span></td><td>🟡 Warm</td><td>40–59</td><td>48 hours</td></tr>
+        <tr><td><span class="pt p">greeting</span></td><td>⚪ Cold</td><td>10–39</td><td>No follow-up</td></tr>
+        <tr><td><span class="pt r">complaint</span></td><td>🚨 Escalate</td><td>—</td><td>Immediate alert to owner</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 6: iOS DASHBOARD -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-ios">
+  <div class="sh">iOS Dashboard — SwiftUI <span class="badge-pill green">SWIFT</span></div>
+  <div class="sh-sub">Business owner app. Simple, mobile-first. Non-tech users can understand it at a glance.</div>
+
+  <div class="g2">
+    <div class="card accent-green">
+      <div class="card-title">📱 App Screens (5 screens total)</div>
+      <ol>
+        <li><strong>Home Dashboard</strong> — Stats: total chats today, hot leads, pending follow-ups</li>
+        <li><strong>Customers List</strong> — Paginated list with lead status badges</li>
+        <li><strong>Chat View</strong> — Full conversation history + manual reply input</li>
+        <li><strong>Leads Screen</strong> — Filtered by Hot / Warm / Cold</li>
+        <li><strong>Settings</strong> — Pause AI, change follow-up hours, upload catalog</li>
+      </ol>
+    </div>
+    <div class="card accent-blue">
+      <div class="card-title">🎨 Design Principles</div>
+      <ul>
+        <li>No technical jargon — "AI paused" not "LLM disabled"</li>
+        <li>Color-coded lead status: 🔴 Hot, 🟡 Warm, ⚪ Cold</li>
+        <li>Large tap targets — small-town India uses older iPhones</li>
+        <li>Hindi labels option: "गर्म लीड", "अनुसरण करें"</li>
+        <li>Offline-tolerant: cache last fetched data in UserDefaults</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">WhatsAppCRM/Views/DashboardView.swift</div></div>
+      <div class="code-lang">swift</div>
+    </div>
+<pre><span class="kw">import</span> SwiftUI
+
+<span class="kw">struct</span> <span class="cl">DashboardView</span>: <span class="cl">View</span> {
+    <span class="dec">@StateObject private var</span> vm = <span class="cl">DashboardViewModel</span>()
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="cl">View</span> {
+        <span class="cl">NavigationStack</span> {
+            <span class="cl">ScrollView</span> {
+                <span class="cl">VStack</span>(spacing: <span class="num">20</span>) {
+                    <span class="cm">// Stats grid</span>
+                    <span class="cl">LazyVGrid</span>(columns: [<span class="cl">GridItem</span>(.flexible()), <span class="cl">GridItem</span>(.flexible())], spacing: <span class="num">14</span>) {
+                        <span class="fn">StatCard</span>(title: <span class="str">"Aaj Ki Baatein"</span>, value: <span class="str">"\(vm.stats.conversationsToday)"</span>, icon: <span class="str">"message.fill"</span>, color: .blue)
+                        <span class="fn">StatCard</span>(title: <span class="str">"Garam Leads 🔥"</span>, value: <span class="str">"\(vm.stats.hotLeads)"</span>, icon: <span class="str">"flame.fill"</span>, color: .red)
+                        <span class="fn">StatCard</span>(title: <span class="str">"Follow-up Baaki"</span>, value: <span class="str">"\(vm.stats.pendingFollowups)"</span>, icon: <span class="str">"clock.fill"</span>, color: .orange)
+                        <span class="fn">StatCard</span>(title: <span class="str">"Kul Grahak"</span>, value: <span class="str">"\(vm.stats.totalCustomers)"</span>, icon: <span class="str">"person.2.fill"</span>, color: .green)
+                    }
+
+                    <span class="cm">// Recent conversations</span>
+                    <span class="cl">VStack</span>(alignment: .leading, spacing: <span class="num">12</span>) {
+                        <span class="cl">Text</span>(<span class="str">"Haaliya Baatein"</span>)
+                            .font(.headline).bold()
+                            .padding(.horizontal)
+
+                        <span class="cl">ForEach</span>(vm.recentCustomers) { customer <span class="kw">in</span>
+                            <span class="cl">NavigationLink</span>(destination: <span class="cl">ChatView</span>(customer: customer)) {
+                                <span class="fn">CustomerRow</span>(customer: customer)
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle(<span class="str">"Dashboard"</span>)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                <span class="cl">ToolbarItem</span>(placement: .navigationBarTrailing) {
+                    <span class="cl">NavigationLink</span>(destination: <span class="cl">SettingsView</span>()) {
+                        <span class="cl">Image</span>(systemName: <span class="str">"gearshape.fill"</span>)
+                    }
+                }
+            }
+            .task { <span class="kw">await</span> vm.loadStats() }
+            .refreshable { <span class="kw">await</span> vm.loadStats() }
+        }
+    }
+}
+
+<span class="kw">struct</span> <span class="cl">StatCard</span>: <span class="cl">View</span> {
+    <span class="kw">let</span> title: <span class="cl">String</span>
+    <span class="kw">let</span> value: <span class="cl">String</span>
+    <span class="kw">let</span> icon: <span class="cl">String</span>
+    <span class="kw">let</span> color: <span class="cl">Color</span>
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="cl">View</span> {
+        <span class="cl">VStack</span>(alignment: .leading, spacing: <span class="num">10</span>) {
+            <span class="cl">HStack</span> {
+                <span class="cl">Image</span>(systemName: icon)
+                    .foregroundColor(color)
+                    .font(.title3)
+                <span class="cl">Spacer</span>()
+            }
+            <span class="cl">Text</span>(value)
+                .font(.system(size: <span class="num">32</span>, weight: .bold, design: .rounded))
+            <span class="cl">Text</span>(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(<span class="num">16</span>)
+        .background(<span class="cl">Color</span>(.secondarySystemBackground))
+        .cornerRadius(<span class="num">14</span>)
+    }
+}</pre>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">WhatsAppCRM/Views/ChatView.swift — Conversation + Manual Reply</div></div>
+      <div class="code-lang">swift</div>
+    </div>
+<pre><span class="kw">struct</span> <span class="cl">ChatView</span>: <span class="cl">View</span> {
+    <span class="kw">let</span> customer: <span class="cl">Customer</span>
+    <span class="dec">@StateObject private var</span> vm: <span class="cl">ChatViewModel</span>
+    <span class="dec">@State private var</span> replyText = <span class="str">""</span>
+    <span class="dec">@State private var</span> isAIPaused = <span class="kw">false</span>
+
+    <span class="kw">init</span>(customer: <span class="cl">Customer</span>) {
+        self.customer = customer
+        _vm = <span class="cl">StateObject</span>(wrappedValue: <span class="cl">ChatViewModel</span>(customerId: customer.id))
+    }
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="cl">View</span> {
+        <span class="cl">VStack</span>(spacing: <span class="num">0</span>) {
+            <span class="cm">// AI status toggle bar</span>
+            <span class="cl">HStack</span> {
+                <span class="cl">Image</span>(systemName: isAIPaused ? <span class="str">"pause.circle.fill"</span> : <span class="str">"cpu.fill"</span>)
+                    .foregroundColor(isAIPaused ? .orange : .green)
+                <span class="cl">Text</span>(isAIPaused ? <span class="str">"AI band hai — aap reply kar rahe hain"</span> : <span class="str">"AI active hai"</span>)
+                    .font(.caption)
+                <span class="cl">Spacer</span>()
+                <span class="cl">Toggle</span>(<span class="str">""</span>, isOn: $isAIPaused)
+                    .labelsHidden()
+                    .onChange(of: isAIPaused) { paused <span class="kw">in</span>
+                        <span class="cl">Task</span> { <span class="kw">await</span> vm.toggleAI(paused: paused) }
+                    }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, <span class="num">8</span>)
+            .background(<span class="cl">Color</span>(.systemBackground))
+            .overlay(<span class="cl">Divider</span>(), alignment: .bottom)
+
+            <span class="cm">// Messages ScrollView</span>
+            <span class="cl">ScrollViewReader</span> { proxy <span class="kw">in</span>
+                <span class="cl">ScrollView</span> {
+                    <span class="cl">LazyVStack</span>(spacing: <span class="num">8</span>) {
+                        <span class="cl">ForEach</span>(vm.messages) { msg <span class="kw">in</span>
+                            <span class="fn">MessageBubble</span>(message: msg)
+                                .id(msg.id)
+                        }
+                    }
+                    .padding()
+                }
+                .onChange(of: vm.messages.count) { _ <span class="kw">in</span>
+                    <span class="kw">if let</span> last = vm.messages.last {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+
+            <span class="cm">// Manual reply input (shown always, useful when AI paused)</span>
+            <span class="cl">HStack</span>(spacing: <span class="num">10</span>) {
+                <span class="cl">TextField</span>(<span class="str">"Apna jawab likhein..."</span>, text: $replyText, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(<span class="num">1</span>...<span class="num">4</span>)
+
+                <span class="cl">Button</span> {
+                    <span class="cl">Task</span> {
+                        <span class="kw">await</span> vm.sendManualReply(replyText, phone: customer.phone)
+                        replyText = <span class="str">""</span>
+                    }
+                } label: {
+                    <span class="cl">Image</span>(systemName: <span class="str">"paperplane.fill"</span>)
+                        .font(.title3)
+                        .foregroundColor(replyText.isEmpty ? .gray : .blue)
+                }
+                .disabled(replyText.isEmpty)
+            }
+            .padding()
+            .background(<span class="cl">Color</span>(.systemBackground))
+        }
+        .navigationTitle(customer.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .task { <span class="kw">await</span> vm.loadMessages() }
+    }
+}</pre>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">WhatsAppCRM/Services/APIClient.swift</div></div>
+      <div class="code-lang">swift</div>
+    </div>
+<pre><span class="kw">import</span> Foundation
+
+<span class="kw">struct</span> <span class="cl">APIClient</span> {
+    <span class="kw">static let</span> baseURL = <span class="str">"https://your-app.railway.app/api/v1"</span>
+    <span class="kw">static let</span> businessId = <span class="str">"your-business-uuid"</span>  <span class="cm">// From UserDefaults in prod</span>
+
+    <span class="kw">static func</span> <span class="fn">getStats</span>() <span class="kw">async throws</span> -> <span class="cl">DashboardStats</span> {
+        <span class="kw">let</span> url = <span class="cl">URL</span>(string: <span class="str">"\(baseURL)/stats?business_id=\(businessId)"</span>)!
+        <span class="kw">let</span> (data, _) = <span class="kw">try await</span> <span class="cl">URLSession</span>.shared.data(from: url)
+        <span class="kw">return try</span> <span class="cl">JSONDecoder</span>().<span class="fn">decode</span>(<span class="cl">DashboardStats</span>.self, from: data)
+    }
+
+    <span class="kw">static func</span> <span class="fn">getCustomers</span>(page: Int = <span class="num">1</span>) <span class="kw">async throws</span> -> [<span class="cl">Customer</span>] {
+        <span class="kw">let</span> url = <span class="cl">URL</span>(string: <span class="str">"\(baseURL)/customers?business_id=\(businessId)&page=\(page)"</span>)!
+        <span class="kw">let</span> (data, _) = <span class="kw">try await</span> <span class="cl">URLSession</span>.shared.data(from: url)
+        <span class="kw">return try</span> <span class="cl">JSONDecoder</span>().<span class="fn">decode</span>([<span class="cl">Customer</span>].self, from: data)
+    }
+
+    <span class="kw">static func</span> <span class="fn">sendManualReply</span>(phone: <span class="cl">String</span>, text: <span class="cl">String</span>) <span class="kw">async throws</span> {
+        <span class="kw">var</span> req = <span class="cl">URLRequest</span>(url: <span class="cl">URL</span>(string: <span class="str">"\(baseURL)/manual-reply"</span>)!)
+        req.httpMethod = <span class="str">"POST"</span>
+        req.setValue(<span class="str">"application/json"</span>, forHTTPHeaderField: <span class="str">"Content-Type"</span>)
+        req.httpBody = <span class="kw">try</span> <span class="cl">JSONEncoder</span>().<span class="fn">encode</span>([<span class="str">"phone"</span>: phone, <span class="str">"text"</span>: text])
+        <span class="kw">let</span> (_, _) = <span class="kw">try await</span> <span class="cl">URLSession</span>.shared.data(for: req)
+    }
+}</pre>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 7: TESTING -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-testing">
+  <div class="sh">Testing Setup <span class="badge-pill blue">TESTING</span></div>
+  <div class="sh-sub">Step-by-step guide to test your webhook locally with real WhatsApp messages before going live.</div>
+
+  <div class="card accent-green">
+    <div class="card-title">🔧 Local Testing with ngrok + Meta Sandbox</div>
+    <div class="tl" style="margin-top:14px;">
+      <div class="tl-item">
+        <div class="tl-dot solid"></div>
+        <div class="tl-week">Step 1</div>
+        <div class="tl-title">Install and run your backend locally</div>
+        <div class="tl-body">Clone repo, install deps, add .env file, start FastAPI server.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot solid"></div>
+        <div class="tl-week">Step 2</div>
+        <div class="tl-title">Install ngrok and expose port 8000</div>
+        <div class="tl-body">ngrok creates a public HTTPS URL that tunnels to your localhost, so Meta can reach your webhook.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Step 3</div>
+        <div class="tl-title">Create Meta WhatsApp App and register webhook</div>
+        <div class="tl-body">Go to developers.facebook.com, create App, add WhatsApp product, paste ngrok URL as webhook.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Step 4</div>
+        <div class="tl-title">Send test messages from your phone</div>
+        <div class="tl-body">Meta test mode allows up to 5 numbers to send messages to your bot. Add your phone in the dashboard.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Step 5</div>
+        <div class="tl-title">Verify AI responses in terminal logs</div>
+        <div class="tl-body">Watch FastAPI logs to confirm message received → RAG query → GPT call → reply sent.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">Terminal — Local Setup Commands</div></div>
+      <div class="code-lang">bash</div>
+    </div>
+<pre><span class="cm"># 1. Clone and setup</span>
+git clone https://github.com/yourname/whatsapp-crm
+cd whatsapp-crm
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+<span class="cm"># 2. Create .env file</span>
+cat > .env << EOF
+WHATSAPP_TOKEN=your_meta_token_here
+WHATSAPP_VERIFY_TOKEN=my_secret_verify_123
+WHATSAPP_PHONE_ID=your_phone_number_id
+OPENAI_API_KEY=sk-...
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost/wcrm
+DEBUG=true
+EOF
+
+<span class="cm"># 3. Start PostgreSQL (if running locally)</span>
+docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=wcrm postgres:15
+
+<span class="cm"># 4. Run FastAPI server</span>
+uvicorn app.main:app --reload --port 8000
+
+<span class="cm"># 5. In a NEW terminal — start ngrok</span>
+ngrok http 8000
+
+<span class="cm"># ngrok output will show something like:
+# Forwarding  https://abc123.ngrok-free.app -> http://localhost:8000
+# Copy this URL!</span>
+
+<span class="cm"># 6. Test your webhook manually</span>
+curl "https://abc123.ngrok-free.app/webhook/?hub.mode=subscribe&hub.verify_token=my_secret_verify_123&hub.challenge=1234"
+<span class="cm"># Should return: 1234</span>
+
+<span class="cm"># 7. Simulate incoming WhatsApp message</span>
+curl -X POST https://abc123.ngrok-free.app/webhook/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entry": [{
+      "changes": [{
+        "value": {
+          "contacts": [{"profile": {"name": "Ramesh"}}],
+          "messages": [{
+            "from": "919876543210",
+            "id": "test_id_123",
+            "timestamp": "1700000000",
+            "text": {"body": "Bhaiya jacket ka price kya hai?"},
+            "type": "text"
+          }]
+        }
+      }]
+    }]
+  }'
+<span class="cm"># Watch your terminal — you should see the AI pipeline run!</span></pre>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">tests/test_pipeline.py — Automated Tests</div></div>
+      <div class="code-lang">python</div>
+    </div>
+<pre><span class="kw">import</span> pytest
+<span class="kw">from</span> httpx <span class="kw">import</span> AsyncClient
+<span class="kw">from</span> app.main <span class="kw">import</span> app
+<span class="kw">from</span> app.utils.intent <span class="kw">import</span> classify_intent
+
+<span class="cm"># Test intent classifier (no API calls needed)</span>
+<span class="kw">def</span> <span class="fn">test_intent_purchase</span>():
+    <span class="kw">assert</span> <span class="fn">classify_intent</span>(<span class="str">"mujhe jacket chahiye"</span>) == <span class="str">"purchase"</span>
+    <span class="kw">assert</span> <span class="fn">classify_intent</span>(<span class="str">"I want to order"</span>) == <span class="str">"purchase"</span>
+
+<span class="kw">def</span> <span class="fn">test_intent_price</span>():
+    <span class="kw">assert</span> <span class="fn">classify_intent</span>(<span class="str">"price kitna hai?"</span>) == <span class="str">"price_inquiry"</span>
+    <span class="kw">assert</span> <span class="fn">classify_intent</span>(<span class="str">"offer hai kya?"</span>) == <span class="str">"price_inquiry"</span>
+
+<span class="kw">def</span> <span class="fn">test_intent_greeting</span>():
+    <span class="kw">assert</span> <span class="fn">classify_intent</span>(<span class="str">"namaste bhaiya"</span>) == <span class="str">"greeting"</span>
+
+<span class="cm"># Test webhook verification</span>
+<span class="dec">@pytest.mark.asyncio</span>
+<span class="kw">async def</span> <span class="fn">test_webhook_verification</span>():
+    <span class="kw">async with</span> <span class="cl">AsyncClient</span>(app=app, base_url=<span class="str">"http://test"</span>) <span class="kw">as</span> client:
+        <span class="var">resp</span> = <span class="kw">await</span> client.<span class="fn">get</span>(
+            <span class="str">"/webhook/"</span>,
+            params={
+                <span class="str">"hub.mode"</span>: <span class="str">"subscribe"</span>,
+                <span class="str">"hub.verify_token"</span>: <span class="str">"my_secret_verify_123"</span>,
+                <span class="str">"hub.challenge"</span>: <span class="str">"abc123"</span>
+            }
+        )
+        <span class="kw">assert</span> <span class="var">resp</span>.status_code == <span class="num">200</span>
+
+<span class="cm"># Test message parsing</span>
+<span class="kw">def</span> <span class="fn">test_message_parsing</span>():
+    <span class="kw">from</span> app.services.whatsapp <span class="kw">import</span> parse_incoming_message
+    mock_value = {
+        <span class="str">"contacts"</span>: [{<span class="str">"profile"</span>: {<span class="str">"name"</span>: <span class="str">"Test User"</span>}}],
+        <span class="str">"messages"</span>: [{
+            <span class="str">"from"</span>: <span class="str">"919876543210"</span>, <span class="str">"id"</span>: <span class="str">"abc"</span>,
+            <span class="str">"timestamp"</span>: <span class="str">"1700000000"</span>,
+            <span class="str">"text"</span>: {<span class="str">"body"</span>: <span class="str">"Hello"</span>}
+        }]
+    }
+    msg = <span class="fn">parse_incoming_message</span>(mock_value)
+    <span class="kw">assert</span> msg.phone == <span class="str">"919876543210"</span>
+    <span class="kw">assert</span> msg.name == <span class="str">"Test User"</span>
+    <span class="kw">assert</span> msg.text == <span class="str">"Hello"</span></pre>
+  </div>
+
+  <div class="ib tip">
+    <div class="ib-title">💡 Test Checklist Before First Real Client</div>
+    <ul>
+      <li>✅ Webhook verification passes (Meta can verify your endpoint)</li>
+      <li>✅ Incoming message saved to DB correctly</li>
+      <li>✅ RAG returns relevant products for test queries</li>
+      <li>✅ AI responds in Hinglish (check the actual WhatsApp message you receive)</li>
+      <li>✅ Follow-up is scheduled and fires after X hours</li>
+      <li>✅ Cancelling follow-up works when customer replies</li>
+      <li>✅ Manual reply from iOS app reaches customer WhatsApp</li>
+      <li>✅ "Pause AI" stops auto-replies for that customer</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 8: DEPLOYMENT -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-deploy">
+  <div class="sh">Deployment Strategy <span class="badge-pill orange">DEPLOY</span></div>
+  <div class="sh-sub">Ship to Railway in under 30 minutes. Zero DevOps experience needed.</div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">Dockerfile — Production Container</div></div>
+      <div class="code-lang">dockerfile</div>
+    </div>
+<pre><span class="cm"># Dockerfile</span>
+<span class="kw">FROM</span> python:3.11-slim
+
+<span class="kw">WORKDIR</span> /app
+
+<span class="cm"># Install deps first (Docker layer caching)</span>
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip install --no-cache-dir -r requirements.txt
+
+<span class="cm"># Copy app code</span>
+<span class="kw">COPY</span> . .
+
+<span class="cm"># Create ChromaDB persistence directory</span>
+<span class="kw">RUN</span> mkdir -p /app/chroma_db
+
+<span class="cm"># Run with production settings</span>
+<span class="kw">CMD</span> ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]</pre>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-bar-left"><div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div><div class="code-file">Terminal — Deploy to Railway (One Command)</div></div>
+      <div class="code-lang">bash</div>
+    </div>
+<pre><span class="cm"># 1. Install Railway CLI</span>
+npm install -g @railway/cli
+
+<span class="cm"># 2. Login and create project</span>
+railway login
+railway init   <span class="cm"># Creates new Railway project</span>
+
+<span class="cm"># 3. Add PostgreSQL database</span>
+railway add --plugin postgresql
+<span class="cm"># Railway auto-sets DATABASE_URL env var!</span>
+
+<span class="cm"># 4. Set environment variables</span>
+railway variables set WHATSAPP_TOKEN=your_token_here
+railway variables set WHATSAPP_VERIFY_TOKEN=my_secret_123
+railway variables set WHATSAPP_PHONE_ID=your_phone_id
+railway variables set OPENAI_API_KEY=sk-...
+railway variables set SECRET_KEY=super_secret_production_key
+railway variables set DEBUG=false
+railway variables set FOLLOWUP_HOURS=24
+
+<span class="cm"># 5. Deploy!</span>
+railway up
+<span class="cm"># Output: https://whatsapp-crm-production.railway.app</span>
+
+<span class="cm"># 6. Verify deployment</span>
+curl https://whatsapp-crm-production.railway.app/
+<span class="cm"># → {"status": "running", "service": "WhatsApp CRM"}</span>
+
+<span class="cm"># 7. Update Meta webhook URL</span>
+<span class="cm"># Go to: developers.facebook.com → Your App → WhatsApp → Configuration
+# Callback URL: https://whatsapp-crm-production.railway.app/webhook/
+# Verify Token: my_secret_123</span>
+
+<span class="cm"># 8. Trigger DB migrations (run once)</span>
+railway run alembic upgrade head
+
+<span class="cm"># 9. Monitor logs</span>
+railway logs --tail</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🌍 Environment Variables Reference</div>
+    <table class="t" style="margin-bottom:0;">
+      <thead><tr><th>Variable</th><th>Where to Get It</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td class="mono-sm">WHATSAPP_TOKEN</td><td>Meta for Developers → App → WhatsApp → API Setup</td><td class="mono-sm">EAABx...</td></tr>
+        <tr><td class="mono-sm">WHATSAPP_PHONE_ID</td><td>Meta → WhatsApp → API Setup → Phone Number ID</td><td class="mono-sm">120364...</td></tr>
+        <tr><td class="mono-sm">WHATSAPP_VERIFY_TOKEN</td><td>You make this up — any string</td><td class="mono-sm">wcrm_verify_123</td></tr>
+        <tr><td class="mono-sm">OPENAI_API_KEY</td><td>platform.openai.com → API keys</td><td class="mono-sm">sk-proj-...</td></tr>
+        <tr><td class="mono-sm">DATABASE_URL</td><td>Auto-set by Railway when you add PostgreSQL plugin</td><td class="mono-sm">postgresql+asyncpg://...</td></tr>
+        <tr><td class="mono-sm">SECRET_KEY</td><td>Generate: python -c "import secrets; print(secrets.token_hex(32))"</td><td class="mono-sm">a3f8b2...</td></tr>
+        <tr><td class="mono-sm">FOLLOWUP_HOURS</td><td>Business preference — 12, 24, or 48</td><td class="mono-sm">24</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="g2">
+    <div class="ib tip">
+      <div class="ib-title">✅ Post-Deploy Checklist</div>
+      <ul>
+        <li>Meta webhook verification returns 200</li>
+        <li>Send yourself a test WhatsApp — get AI reply</li>
+        <li>Check Railway logs for no errors</li>
+        <li>Supabase dashboard shows new customer record</li>
+        <li>iOS app connects and shows dashboard stats</li>
+      </ul>
+    </div>
+    <div class="ib warn">
+      <div class="ib-title">⚠️ Important Production Notes</div>
+      <ul>
+        <li>Never commit .env to GitHub — add to .gitignore</li>
+        <li>ChromaDB persists to disk on Railway — check volume settings</li>
+        <li>Meta production access requires business verification (7–14 days)</li>
+        <li>Set up Sentry for error alerts before first client</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Client Onboarding Flow (Once Deployed)</div>
+    <ol style="padding-left:20px;font-size:13px;line-height:2;">
+      <li>Create a Business record via API (POST /api/v1/business)</li>
+      <li>Upload their product catalog as a JSON file → ingest to ChromaDB</li>
+      <li>Add their WhatsApp phone number to Meta's test numbers</li>
+      <li>Do a live test: send "Namaste" from client's phone → verify AI replies in Hinglish</li>
+      <li>Hand them the iOS app → walk through Dashboard, Leads, Chat screens</li>
+      <li>Configure their preferred follow-up time (12 or 24 hours)</li>
+      <li>Collect first month's payment → activate their subscription</li>
+    </ol>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB 9: MONETIZATION -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-monetize">
+  <div class="sh">Monetization Strategy <span class="badge-pill green">MONEY</span></div>
+  <div class="sh-sub">Pricing model, scaling plan, and exact steps to go from 0 to ₹1L/month.</div>
+
+  <div class="price-grid">
+    <div class="price-card">
+      <div class="price-name">Starter</div>
+      <div class="price-amt">₹999<span>/month</span></div>
+      <div class="price-desc">For tiny shops: 1–2 staff, under 50 conversations/day</div>
+      <ul class="price-features">
+        <li>Auto-reply (Hindi + English)</li>
+        <li>Up to 500 AI messages/month</li>
+        <li>Basic CRM (customers + chats)</li>
+        <li>Follow-up agent (24hr)</li>
+        <li>Email support</li>
+      </ul>
+    </div>
+    <div class="price-card featured">
+      <div class="price-name">⭐ Growth (Most Popular)</div>
+      <div class="price-amt">₹1,999<span>/month</span></div>
+      <div class="price-desc">For active businesses: salons, coaching centers, restaurants</div>
+      <ul class="price-features">
+        <li>Everything in Starter</li>
+        <li>Up to 2,000 AI messages/month</li>
+        <li>Sales Agent (product suggestions)</li>
+        <li>iOS Dashboard app</li>
+        <li>Lead scoring &amp; status</li>
+        <li>Follow-up (12hr configurable)</li>
+        <li>WhatsApp support</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <div class="price-name">Business</div>
+      <div class="price-amt">₹3,499<span>/month</span></div>
+      <div class="price-desc">For high-volume businesses: clinics, large retail stores</div>
+      <ul class="price-features">
+        <li>Everything in Growth</li>
+        <li>Unlimited AI messages</li>
+        <li>Multiple staff accounts</li>
+        <li>Custom AI persona &amp; language</li>
+        <li>Priority support (1hr response)</li>
+        <li>Monthly analytics report</li>
+        <li>Custom follow-up sequences</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card accent-green">
+      <div class="card-title">💰 Setup Fee Structure</div>
+      <ul>
+        <li><strong>Basic setup:</strong> ₹2,000 one-time</li>
+        <li>Includes: WhatsApp Business API connection, product catalog upload (up to 50 items), test run, iOS app installation on owner's phone</li>
+        <li><strong>Premium onboarding:</strong> ₹5,000 — includes custom AI persona, FAQ setup in Bengali/Hindi, 1 month of tweaking</li>
+        <li><strong>Annual prepay discount:</strong> 2 months free (17% off) — helps your cash flow</li>
+      </ul>
+    </div>
+    <div class="card accent-blue">
+      <div class="card-title">📊 Cost per Client (Your Margins)</div>
+      <table class="t" style="margin-bottom:0;">
+        <thead><tr><th>Item</th><th>Monthly Cost</th></tr></thead>
+        <tbody>
+          <tr><td>OpenAI (2,000 msgs × ~300 tokens)</td><td>~₹300–₹500</td></tr>
+          <tr><td>Railway hosting (shared)</td><td>~₹100–₹200</td></tr>
+          <tr><td>Supabase DB (free tier)</td><td>₹0</td></tr>
+          <tr><td>WhatsApp API (1000 free/month)</td><td>₹0–₹100</td></tr>
+          <tr><td><strong>Total COGS (Growth plan)</strong></td><td><strong>~₹500–₹800</strong></td></tr>
+          <tr><td><strong>Your margin at ₹1,999</strong></td><td><strong>~60–75%</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card accent-orange">
+    <div class="card-title">📈 Scaling Roadmap: 0 → ₹1L/Month</div>
+    <div class="tl" style="margin-top:14px;">
+      <div class="tl-item">
+        <div class="tl-dot solid"></div>
+        <div class="tl-week">Month 1–2 · Phase: Prove It Works</div>
+        <div class="tl-title">3 clients @ ₹1,999 = ₹5,997 MRR</div>
+        <div class="tl-body">Onboard 3 businesses from your Asansol network (family friends, local shops). Offer 50% discount for first month in exchange for testimonials + honest feedback. Fix all bugs. Polish the iOS app.</div>
+        <div class="task-chips"><span class="tc">Personal network</span><span class="tc">Free beta offer</span><span class="tc">Collect feedback</span></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot solid"></div>
+        <div class="tl-week">Month 3–4 · Phase: Grow Local</div>
+        <div class="tl-title">15 clients @ avg ₹1,999 = ₹30K MRR</div>
+        <div class="tl-body">Use client testimonials on a simple landing page. Join Asansol business WhatsApp groups and offer free demos. Hire 1 commission-based field salesperson at 20% per new sign-up. Target: 3–4 new clients/week.</div>
+        <div class="task-chips"><span class="tc">Landing page</span><span class="tc">Commission sales rep</span><span class="tc">WhatsApp groups</span></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Month 5–8 · Phase: Regional Expansion</div>
+        <div class="tl-title">50 clients @ avg ₹2,000 = ₹1L MRR</div>
+        <div class="tl-body">Expand to Durgapur, Dhanbad, and Burdwan with 2–3 more sales reps. Build a simple referral program (₹500 credit for each client they refer). Start targeting verticals: all salons in Asansol, all coaching centers in Durgapur.</div>
+        <div class="task-chips"><span class="tc">Multi-city expansion</span><span class="tc">Referral program</span><span class="tc">Vertical targeting</span></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-week">Month 9–12 · Phase: Systematize</div>
+        <div class="tl-title">100 clients = ₹2L+ MRR → ₹24L/year</div>
+        <div class="tl-body">Hire 1 part-time support person in Asansol. Automate client onboarding with a self-serve portal. Begin enterprise conversations with larger chains (multi-branch salons, hospital groups). Raise prices for new signups.</div>
+        <div class="task-chips"><span class="tc">Self-serve portal</span><span class="tc">Enterprise outreach</span><span class="tc">Price increase</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="ib tip">
+      <div class="ib-title">🎯 First Client Script</div>
+      <p>"Bhai, main ek software bana raha hoon jo aapke WhatsApp pe aane wale saare messages ko automatically jawab deta hai — raat ko, Sunday ko, bhi. Aapko kuch nahi karna, AI sab handle karega. Main aapko 1 mahina free mein try karwata hoon — agar kaam aaya, tabhi paise lena."</p>
+    </div>
+    <div class="ib note">
+      <div class="ib-title">📌 What Makes Clients Pay Every Month</div>
+      <ul>
+        <li>Show them: "AI ne is mahine 47 leads handle kiye"</li>
+        <li>Show: "3 customers ne follow-up ke baad order kiya"</li>
+        <li>Monthly WhatsApp message to owner: their stats summary</li>
+        <li>This creates a clear ROI they can see — churn drops to near zero</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- JS -->
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tn-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
