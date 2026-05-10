@@ -59,11 +59,20 @@ def parse_incoming_message(value: dict) -> IncomingMessage:
     )
 
 
-async def send_whatsapp_message(to_phone: str, text: str) -> bool:
-    """Send a text message via Meta WhatsApp Cloud API."""
-    url = f"{GRAPH_API_BASE}/{settings.WHATSAPP_PHONE_ID}/messages"
+async def send_whatsapp_message(
+    to_phone: str,
+    text: str,
+    phone_id: Optional[str] = None,
+    token: Optional[str] = None,
+) -> bool:
+    """Send a text message via Meta WhatsApp Cloud API.
+    Uses per-tenant phone_id/token when provided, falls back to global settings.
+    """
+    _phone_id = phone_id or settings.WHATSAPP_PHONE_ID
+    _token = token or settings.WHATSAPP_TOKEN
+    url = f"{GRAPH_API_BASE}/{_phone_id}/messages"
     headers = {
-        "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+        "Authorization": f"Bearer {_token}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -93,14 +102,18 @@ async def send_whatsapp_buttons(
     buttons: List[dict],
     header: Optional[str] = None,
     footer: Optional[str] = None,
+    phone_id: Optional[str] = None,
+    token: Optional[str] = None,
 ) -> bool:
     """
     Send an interactive button message (max 3 buttons).
     Each button: {"id": "unique_id", "title": "Button Label"}
     """
-    url = f"{GRAPH_API_BASE}/{settings.WHATSAPP_PHONE_ID}/messages"
+    _phone_id = phone_id or settings.WHATSAPP_PHONE_ID
+    _token = token or settings.WHATSAPP_TOKEN
+    url = f"{GRAPH_API_BASE}/{_phone_id}/messages"
     headers = {
-        "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+        "Authorization": f"Bearer {_token}",
         "Content-Type": "application/json",
     }
     interactive: dict = {
@@ -144,14 +157,18 @@ async def send_whatsapp_list(
     sections: List[dict],
     header: Optional[str] = None,
     footer: Optional[str] = None,
+    phone_id: Optional[str] = None,
+    token: Optional[str] = None,
 ) -> bool:
     """
     Send an interactive list message (scrollable menu, max 10 items total).
     Each section: {"title": "Section Name", "rows": [{"id": "id", "title": "Item", "description": "desc"}]}
     """
-    url = f"{GRAPH_API_BASE}/{settings.WHATSAPP_PHONE_ID}/messages"
+    _phone_id = phone_id or settings.WHATSAPP_PHONE_ID
+    _token = token or settings.WHATSAPP_TOKEN
+    url = f"{GRAPH_API_BASE}/{_phone_id}/messages"
     headers = {
-        "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+        "Authorization": f"Bearer {_token}",
         "Content-Type": "application/json",
     }
     interactive: dict = {
@@ -186,11 +203,13 @@ async def send_whatsapp_list(
         return False
 
 
-async def mark_as_read(message_id: str) -> None:
+async def mark_as_read(message_id: str, phone_id: Optional[str] = None, token: Optional[str] = None) -> None:
     """Mark an incoming message as read (shows double blue ticks)."""
-    url = f"{GRAPH_API_BASE}/{settings.WHATSAPP_PHONE_ID}/messages"
+    _phone_id = phone_id or settings.WHATSAPP_PHONE_ID
+    _token = token or settings.WHATSAPP_TOKEN
+    url = f"{GRAPH_API_BASE}/{_phone_id}/messages"
     headers = {
-        "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+        "Authorization": f"Bearer {_token}",
         "Content-Type": "application/json",
     }
     payload = {

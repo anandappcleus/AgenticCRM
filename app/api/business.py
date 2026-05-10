@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,14 @@ class BusinessCreate(BaseModel):
     owner_email: str
     language: str = "hinglish"
     followup_hours: int = 24
+    # Per-tenant credentials (optional — falls back to env vars when not set)
+    whatsapp_token: Optional[str] = None
+    webhook_verify_token: Optional[str] = None
+    # Per-tenant AI customisation (optional)
+    # Use {rag_context} and {customer_name} as placeholders in system_prompt
+    system_prompt: Optional[str] = None
+    # JSON string: {"mon": "10:00-20:00", "sun": "closed"} — None = always on
+    business_hours: Optional[str] = None
 
 
 class CatalogItem(BaseModel):
@@ -49,6 +57,10 @@ async def register_business(
         owner_email=body.owner_email,
         language=body.language,
         followup_hours=body.followup_hours,
+        whatsapp_token=body.whatsapp_token,
+        webhook_verify_token=body.webhook_verify_token,
+        system_prompt=body.system_prompt,
+        business_hours=body.business_hours,
     )
     if created:
         logger.info(f"[Business] Registered new business id={business.id} name={business.name} phone={body.phone_number}")

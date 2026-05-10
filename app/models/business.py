@@ -15,6 +15,10 @@ async def create_business(
     owner_email: str,
     language: str = "hinglish",
     followup_hours: int = 24,
+    whatsapp_token: str = None,
+    webhook_verify_token: str = None,
+    system_prompt: str = None,
+    business_hours: str = None,
 ) -> Tuple[Business, bool]:
     """Returns (business, created). created=False when record already existed."""
     business = Business(
@@ -25,6 +29,10 @@ async def create_business(
         owner_email=owner_email,
         language=language,
         followup_hours=followup_hours,
+        whatsapp_token=whatsapp_token,
+        webhook_verify_token=webhook_verify_token,
+        system_prompt=system_prompt,
+        business_hours=business_hours,
     )
     db.add(business)
     try:

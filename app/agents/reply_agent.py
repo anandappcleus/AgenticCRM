@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 from openai import AsyncOpenAI
 from app.config import settings
 from app.services.rag import BusinessRAG
@@ -10,12 +10,22 @@ client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_B
 
 class ReplyAgent:
     """
-    Core AI brain. Uses GPT-4o + RAG over business catalog to reply
+    Core AI brain. Uses NIM + RAG over business catalog to reply
     in Hinglish / Hindi / English based on what the customer sends.
+    Supports per-tenant system_prompt, business_type, and language.
     """
 
-    def __init__(self, business_id: str):
+    def __init__(
+        self,
+        business_id: str,
+        system_prompt: Optional[str] = None,
+        business_type: Optional[str] = None,
+        language: str = "hinglish",
+    ):
         self.business_id = business_id
+        self.custom_system_prompt = system_prompt  # per-tenant override
+        self.business_type = business_type or "general"
+        self.language = language
         self.rag = BusinessRAG(business_id)
 
     async def run(
@@ -30,8 +40,12 @@ class ReplyAgent:
         if "No business knowledge" in context:
             logger.warning(f"[ReplyAgent] business={self.business_id} RAG empty — using generic reply")
 
-        # Build system prompt with RAG context
-        system_prompt = self._build_system_prompt(context, customer_name)
+        # Build system prompt: use per-tenant custom prompt or default
+        if self.custom_system_prompt:
+            system_prompt = self.custom_system_prompt.replace("{rag_context}", context).replace("{customer_name}", customer_name)
+            logger.info(f"[ReplyAgent] business={self.business_id} using custom system prompt")
+        else:
+            system_prompt = self._build_system_prompt(context, customer_name)
 
         # Build message chain: system + conversation history + new message
         messages = [

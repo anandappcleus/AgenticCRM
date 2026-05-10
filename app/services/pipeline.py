@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+from typing import Optional
 from app.services.whatsapp import (
     IncomingMessage, send_whatsapp_message,
     send_whatsapp_buttons, send_whatsapp_list,
@@ -71,7 +72,11 @@ async def process_message(msg: IncomingMessage) -> None:
                     role="user",
                     content=msg.text,
                 ),
-                mark_as_read(msg.message_id),
+                mark_as_read(
+                    msg.message_id,
+                    phone_id=business.whatsapp_phone_id,
+                    token=business.whatsapp_token,
+                ),
             )
 
             # 4. Cancel pending follow-up (customer is active again)
@@ -86,7 +91,12 @@ async def process_message(msg: IncomingMessage) -> None:
 
             # 7. Reply Agent + Sales Agent in parallel (Sales only when relevant)
             needs_sales = intent in ("purchase", "price_inquiry")
-            reply_agent = ReplyAgent(business_id=business.id)
+            reply_agent = ReplyAgent(
+                business_id=business.id,
+                system_prompt=business.system_prompt,
+                business_type=business.business_type,
+                language=business.language,
+            )
 
             if needs_sales:
                 sales_agent = SalesAgent(business_id=business.id)
@@ -116,7 +126,13 @@ async def process_message(msg: IncomingMessage) -> None:
                 )
 
             # 8. Send reply — with interactive buttons when intent warrants it
-            await _send_reply(msg.phone, response_text, intent)
+            await _send_reply(
+                phone=msg.phone,
+                text=response_text,
+                intent=intent,
+                phone_id=business.whatsapp_phone_id,
+                token=business.whatsapp_token,
+            )
 
             # 9. Save AI response + upsert lead in parallel
             await asyncio.gather(
@@ -180,10 +196,17 @@ _INTENT_BUTTONS = {
 }
 
 
-async def _send_reply(phone: str, text: str, intent: str) -> None:
+async def _send_reply(
+    phone: str,
+    text: str,
+    intent: str,
+    phone_id: Optional[str] = None,
+    token: Optional[str] = None,
+) -> None:
     """
     Send the AI reply with interactive buttons when the intent supports it.
     Falls back to plain text if button send fails.
+    Uses per-tenant phone_id and token when provided.
     """
     buttons = _INTENT_BUTTONS.get(intent)
     if buttons:
@@ -191,9 +214,10 @@ async def _send_reply(phone: str, text: str, intent: str) -> None:
             to_phone=phone,
             body=text,
             buttons=buttons,
+            phone_id=phone_id,
+            token=token,
         )
         if sent:
             return
-        # Fallback to plain text if interactive send fails
         logger.warning(f"[Pipeline] Button send failed for intent={intent}, falling back to text")
-    await send_whatsapp_message(phone, text)
+    await send_whatsapp_message(phone, text, phone_id=phone_id, token=token)

@@ -39,12 +39,18 @@ class Business(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(200), nullable=False)
     phone_number = Column(String(20), unique=True)
-    whatsapp_phone_id = Column(String(100))
-    business_type = Column(String(50))        # clothing / salon / restaurant
+    whatsapp_phone_id = Column(String(100))      # Meta phone number ID
+    whatsapp_token = Column(Text, nullable=True)  # per-tenant token (overrides env)
+    webhook_verify_token = Column(String(100), nullable=True)  # per-tenant verify token
+    business_type = Column(String(50))            # clothing / salon / restaurant
     language = Column(String(20), default="hinglish")
     ai_active = Column(Boolean, default=True)
     followup_hours = Column(Integer, default=24)
     owner_email = Column(String(200))
+    # Per-tenant AI persona — overrides default system prompt when set
+    system_prompt = Column(Text, nullable=True)
+    # Operating hours JSON: {"mon": "10:00-20:00", "sun": "closed"} — None = always on
+    business_hours = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
 
     customers = relationship("Customer", back_populates="business")
