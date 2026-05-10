@@ -1,0 +1,81 @@
+# ── SECRETS (never commit) ────────────────────────────────────────────────
+.env
+*.pem
+*.key
+*.p12
+*.p8
+secrets/
+
+# ── PYTHON ────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+
+# ── VIRTUAL ENVIRONMENTS ──────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── TESTING & COVERAGE ────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+nosetests.xml
+*.log
+
+# ── DATABASE / RUNTIME DATA ───────────────────────────────────────────────
+chroma_db/          # ChromaDB vector store (rebuilt from catalog upload)
+migrations/versions/*.pyc
+*.db
+*.sqlite3
+
+# ── macOS ─────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── IDE ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ── iOS / Xcode ───────────────────────────────────────────────────────────
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace/
+ios/Pods/
+ios/*.xcuserstate
+ios/xcuserdata/
+ios/*.moved-aside
+ios/*.hmap
+ios/*.ipa
+ios/*.dSYM.zip
+ios/*.dSYM
+
+# ── DOCKER ────────────────────────────────────────────────────────────────
+# (keep Dockerfile tracked, ignore local overrides)
+docker-compose.override.yml
+
+# ── DEPLOYMENT ARTIFACTS ──────────────────────────────────────────────────
+.railway/
+.render/
+*.tar.gz
