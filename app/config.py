@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     OPENAI_EMBED_QUERY_TYPE: str = ""
     OPENAI_EMBED_PASSAGE_TYPE: str = ""
 
+    # Redis (optional) — leave empty to disable embedding cache
+    REDIS_URL: str = ""
+
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/wcrm"
 

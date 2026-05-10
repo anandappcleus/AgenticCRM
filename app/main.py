@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from app.api import webhook, dashboard, business
 from app.models.database import init_db
 from app.services.scheduler import start_scheduler, stop_scheduler
+from app.services.redis_client import init_redis, close_redis
+from app.config import settings
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -15,11 +17,13 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting WhatsApp CRM...")
     await init_db()
+    await init_redis(settings.REDIS_URL)
     start_scheduler()
     logger.info("Ready.")
     yield
     # Shutdown
     stop_scheduler()
+    await close_redis()
     logger.info("Shutdown complete.")
 
 

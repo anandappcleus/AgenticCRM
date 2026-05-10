@@ -3,6 +3,7 @@ import logging
 from typing import List
 from openai import AsyncOpenAI
 from app.config import settings
+from app.services.redis_client import get_cached_embedding, set_cached_embedding
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
@@ -32,17 +33,23 @@ class BusinessRAG:
         extra: dict = {}
         if settings.OPENAI_EMBED_QUERY_TYPE:
             extra["input_type"] = settings.OPENAI_EMBED_QUERY_TYPE
-        try:
-            embed_resp = await client.embeddings.create(
-                input=text,
-                model=settings.OPENAI_EMBED_MODEL,
-                extra_body=extra or None,
-            )
-        except Exception as e:
-            logger.error(f"[RAG] Embedding failed for business={self.business_id}: {e}", exc_info=True)
-            return "No business knowledge loaded yet. Reply generically."
 
-        query_embedding = embed_resp.data[0].embedding
+        # Check Redis cache before calling NIM
+        query_embedding = await get_cached_embedding(settings.OPENAI_EMBED_MODEL, text)
+        if query_embedding:
+            logger.info(f"[RAG] embedding cache HIT for business={self.business_id}")
+        else:
+            try:
+                embed_resp = await client.embeddings.create(
+                    input=text,
+                    model=settings.OPENAI_EMBED_MODEL,
+                    extra_body=extra or None,
+                )
+            except Exception as e:
+                logger.error(f"[RAG] Embedding failed for business={self.business_id}: {e}", exc_info=True)
+                return "No business knowledge loaded yet. Reply generically."
+            query_embedding = embed_resp.data[0].embedding
+            await set_cached_embedding(settings.OPENAI_EMBED_MODEL, text, query_embedding)
 
         try:
             results = self.collection.query(

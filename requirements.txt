@@ -20,6 +20,9 @@ tiktoken==0.7.0
 # Scheduler
 apscheduler==3.10.4
 
+# Redis (optional — set REDIS_URL env var to enable embedding cache)
+redis[hiredis]>=5.0.0
+
 # Utils
 python-multipart==0.0.9
 python-jose[cryptography]==3.3.0
