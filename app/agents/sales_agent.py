@@ -32,9 +32,10 @@ class SalesAgent:
         prompt = (
             f"Customer is asking: \"{customer_message}\"\n\n"
             f"Relevant products:\n{context}\n\n"
-            "Write ONE short upsell or cross-sell suggestion in Hinglish. "
-            "Max 1 sentence. Don't repeat what was already said. "
-            "Example: \"Saath mein yeh matching belt bhi dekh sakte hain — sirf ₹250 mein!\""
+            "Write ONE short upsell or cross-sell suggestion in Hinglish using WhatsApp formatting. "
+            "Use *bold* for product name and price. Add 1 relevant emoji. Max 2 lines. "
+            "Don't repeat what was already said in the main reply. "
+            "Example: \"🎁 Saath mein *Matching Belt* bhi available hai — sirf *₹250* mein! Lena hai?\""
         )
 
         try:
