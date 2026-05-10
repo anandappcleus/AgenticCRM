@@ -1,7 +1,11 @@
 import asyncio
 import logging
 import time
-from app.services.whatsapp import IncomingMessage, send_whatsapp_message, mark_as_read
+from app.services.whatsapp import (
+    IncomingMessage, send_whatsapp_message,
+    send_whatsapp_buttons, send_whatsapp_list,
+    mark_as_read,
+)
 from app.agents.reply_agent import ReplyAgent
 from app.agents.sales_agent import SalesAgent
 from app.services.scheduler import schedule_followup, cancel_followup
@@ -111,8 +115,8 @@ async def process_message(msg: IncomingMessage) -> None:
                     intent=intent,
                 )
 
-            # 8. Send reply
-            await send_whatsapp_message(msg.phone, response_text)
+            # 8. Send reply — with interactive buttons when intent warrants it
+            await _send_reply(msg.phone, response_text, intent)
 
             # 9. Save AI response + upsert lead in parallel
             await asyncio.gather(
@@ -146,3 +150,50 @@ async def process_message(msg: IncomingMessage) -> None:
 
         except Exception as e:
             logger.error(f"[Pipeline] error for phone={msg.phone}: {e}", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# Intent-based reply sender
+# ---------------------------------------------------------------------------
+
+_INTENT_BUTTONS = {
+    "greeting": [
+        {"id": "see_products",  "title": "🛍️ Products"},
+        {"id": "check_offers",  "title": "🎁 Offers"},
+        {"id": "contact_owner", "title": "📞 Contact"},
+    ],
+    "price_inquiry": [
+        {"id": "order_now",     "title": "🛒 Order Now"},
+        {"id": "see_more",      "title": "📋 See More"},
+        {"id": "ask_question",  "title": "❓ Ask Question"},
+    ],
+    "purchase": [
+        {"id": "confirm_order", "title": "✅ Confirm Order"},
+        {"id": "change_item",   "title": "🔄 Change Item"},
+        {"id": "cancel_order",  "title": "❌ Cancel"},
+    ],
+    "complaint": [
+        {"id": "request_refund", "title": "🔄 Request Refund"},
+        {"id": "call_owner",     "title": "📞 Call Owner"},
+        {"id": "send_photo",     "title": "📸 Send Photo"},
+    ],
+}
+
+
+async def _send_reply(phone: str, text: str, intent: str) -> None:
+    """
+    Send the AI reply with interactive buttons when the intent supports it.
+    Falls back to plain text if button send fails.
+    """
+    buttons = _INTENT_BUTTONS.get(intent)
+    if buttons:
+        sent = await send_whatsapp_buttons(
+            to_phone=phone,
+            body=text,
+            buttons=buttons,
+        )
+        if sent:
+            return
+        # Fallback to plain text if interactive send fails
+        logger.warning(f"[Pipeline] Button send failed for intent={intent}, falling back to text")
+    await send_whatsapp_message(phone, text)

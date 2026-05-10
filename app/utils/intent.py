@@ -48,6 +48,32 @@ INTENT_KEYWORDS: Dict[str, List[str]] = {
 def classify_intent(text: str) -> str:
     """Return the most likely intent label for a given message."""
     text_lower = text.lower()
+
+    # Button tap IDs / titles map directly to intent
+    _BUTTON_INTENT_MAP = {
+        "see_products":   "price_inquiry",
+        "check_offers":   "price_inquiry",
+        "contact_owner":  "general",
+        "order_now":      "purchase",
+        "see_more":       "price_inquiry",
+        "ask_question":   "general",
+        "confirm_order":  "purchase",
+        "change_item":    "purchase",
+        "cancel_order":   "complaint",
+        "request_refund": "complaint",
+        "call_owner":     "complaint",
+        "send_photo":     "complaint",
+        # Button titles (what the model sees)
+        "🛍️ products":   "price_inquiry",
+        "🎁 offers":      "price_inquiry",
+        "🛒 order now":   "purchase",
+        "✅ confirm order": "purchase",
+        "🔄 request refund": "complaint",
+    }
+    for key, intent in _BUTTON_INTENT_MAP.items():
+        if key in text_lower:
+            return intent
+
     for intent, keywords in INTENT_KEYWORDS.items():
         if any(kw in text_lower for kw in keywords):
             return intent
