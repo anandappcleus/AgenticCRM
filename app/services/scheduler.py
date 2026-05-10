@@ -6,7 +6,7 @@ from app.config import settings
 from app.services.whatsapp import send_whatsapp_message
 
 logger = logging.getLogger(__name__)
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
 scheduler = AsyncIOScheduler()
 
 # Intents that should trigger a follow-up

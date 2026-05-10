@@ -5,7 +5,7 @@ from openai import AsyncOpenAI
 from app.config import settings
 
 logger = logging.getLogger(__name__)
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
 
 
 class BusinessRAG:
@@ -27,9 +27,13 @@ class BusinessRAG:
         if self.collection.count() == 0:
             return "No business knowledge loaded yet. Reply generically."
 
+        extra: dict = {}
+        if settings.OPENAI_EMBED_QUERY_TYPE:
+            extra["input_type"] = settings.OPENAI_EMBED_QUERY_TYPE
         embed_resp = await client.embeddings.create(
             input=text,
             model=settings.OPENAI_EMBED_MODEL,
+            extra_body=extra or None,
         )
         query_embedding = embed_resp.data[0].embedding
 
@@ -61,9 +65,13 @@ class BusinessRAG:
             metas.append({"type": "product", "name": item["name"]})
 
         # Batch embed all texts in one API call
+        extra: dict = {}
+        if settings.OPENAI_EMBED_PASSAGE_TYPE:
+            extra["input_type"] = settings.OPENAI_EMBED_PASSAGE_TYPE
         embed_resp = await client.embeddings.create(
             input=texts,
             model=settings.OPENAI_EMBED_MODEL,
+            extra_body=extra or None,
         )
         embeddings = [d.embedding for d in embed_resp.data]
 
