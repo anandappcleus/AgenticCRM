@@ -53,12 +53,13 @@ async def send_whatsapp_message(to_phone: str, text: str) -> bool:
             resp = await client.post(url, json=payload, headers=headers)
             if resp.status_code != 200:
                 logger.error(
-                    f"WhatsApp API error {resp.status_code}: {resp.text}"
+                    f"[WhatsApp] Send failed {resp.status_code} to={to_phone}: {resp.text}"
                 )
                 return False
+            logger.info(f"[WhatsApp] Message sent to={to_phone} len={len(text)}")
             return True
     except Exception as e:
-        logger.error(f"Failed to send WhatsApp message to {to_phone}: {e}")
+        logger.error(f"[WhatsApp] Network error sending to={to_phone}: {e}", exc_info=True)
         return False
 
 
@@ -76,6 +77,8 @@ async def mark_as_read(message_id: str) -> None:
     }
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            await client.post(url, json=payload, headers=headers)
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code != 200:
+                logger.warning(f"[WhatsApp] mark_as_read {resp.status_code} for msg={message_id}: {resp.text}")
     except Exception as e:
-        logger.warning(f"Could not mark message as read: {e}")
+        logger.warning(f"[WhatsApp] mark_as_read network error for msg={message_id}: {e}")

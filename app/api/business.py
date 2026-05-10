@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -7,6 +8,7 @@ from app.models.business import create_business, get_business
 from app.services.rag import BusinessRAG
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class BusinessCreate(BaseModel):
@@ -48,6 +50,10 @@ async def register_business(
         language=body.language,
         followup_hours=body.followup_hours,
     )
+    if created:
+        logger.info(f"[Business] Registered new business id={business.id} name={business.name} phone={body.phone_number}")
+    else:
+        logger.info(f"[Business] Existing business returned id={business.id} name={business.name}")
     return {
         "id": business.id,
         "name": business.name,
@@ -58,9 +64,18 @@ async def register_business(
 @router.post("/catalog")
 async def upload_catalog(body: CatalogUpload):
     """Upload product catalog / FAQs — indexes into ChromaDB for RAG."""
-    rag = BusinessRAG(body.business_id)
-    items = [item.model_dump() for item in body.items]
-    result = await rag.ingest_catalog(items)
+    if not body.items:
+        logger.warning(f"[Business] Catalog upload called with 0 items for business={body.business_id}")
+        raise HTTPException(status_code=400, detail="items list cannot be empty")
+    logger.info(f"[Business] Catalog upload started business={body.business_id} count={len(body.items)}")
+    try:
+        rag = BusinessRAG(body.business_id)
+        items = [item.model_dump() for item in body.items]
+        result = await rag.ingest_catalog(items)
+    except Exception as e:
+        logger.error(f"[Business] Catalog upload FAILED business={body.business_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Catalog ingestion failed")
+    logger.info(f"[Business] Catalog upload complete business={body.business_id} ingested={result['ingested']}")
     return {"status": "ok", "ingested": result["ingested"]}
 
 

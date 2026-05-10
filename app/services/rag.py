@@ -24,24 +24,41 @@ class BusinessRAG:
 
     async def query(self, text: str, top_k: int = 4) -> str:
         """Retrieve the most relevant business knowledge for a customer query."""
-        if self.collection.count() == 0:
+        count = self.collection.count()
+        if count == 0:
+            logger.warning(f"[RAG] business={self.business_id} catalog is empty — replying generically")
             return "No business knowledge loaded yet. Reply generically."
 
         extra: dict = {}
         if settings.OPENAI_EMBED_QUERY_TYPE:
             extra["input_type"] = settings.OPENAI_EMBED_QUERY_TYPE
-        embed_resp = await client.embeddings.create(
-            input=text,
-            model=settings.OPENAI_EMBED_MODEL,
-            extra_body=extra or None,
-        )
+        try:
+            embed_resp = await client.embeddings.create(
+                input=text,
+                model=settings.OPENAI_EMBED_MODEL,
+                extra_body=extra or None,
+            )
+        except Exception as e:
+            logger.error(f"[RAG] Embedding failed for business={self.business_id}: {e}", exc_info=True)
+            return "No business knowledge loaded yet. Reply generically."
+
         query_embedding = embed_resp.data[0].embedding
 
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=min(top_k, self.collection.count()),
-        )
-        docs = results["documents"][0]
+        try:
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=min(top_k, count),
+            )
+            docs = results["documents"][0]
+        except Exception as e:
+            logger.error(f"[RAG] ChromaDB query failed for business={self.business_id}: {e}", exc_info=True)
+            return "No business knowledge loaded yet. Reply generically."
+
+        if not docs:
+            logger.warning(f"[RAG] business={self.business_id} query returned 0 results for: {text[:60]}")
+            return "No business knowledge loaded yet. Reply generically."
+
+        logger.info(f"[RAG] business={self.business_id} retrieved {len(docs)} results for: {text[:60]}")
         return "\n---\n".join(docs)
 
     async def ingest_catalog(self, items: List[dict]) -> dict:
@@ -68,20 +85,28 @@ class BusinessRAG:
         extra: dict = {}
         if settings.OPENAI_EMBED_PASSAGE_TYPE:
             extra["input_type"] = settings.OPENAI_EMBED_PASSAGE_TYPE
-        embed_resp = await client.embeddings.create(
-            input=texts,
-            model=settings.OPENAI_EMBED_MODEL,
-            extra_body=extra or None,
-        )
+        try:
+            embed_resp = await client.embeddings.create(
+                input=texts,
+                model=settings.OPENAI_EMBED_MODEL,
+                extra_body=extra or None,
+            )
+        except Exception as e:
+            logger.error(f"[RAG] Catalog embedding failed for business={self.business_id}: {e}", exc_info=True)
+            raise
+
         embeddings = [d.embedding for d in embed_resp.data]
 
-        self.collection.upsert(
-            documents=texts,
-            embeddings=embeddings,
-            ids=ids,
-            metadatas=metas,
-        )
-        logger.info(
-            f"Ingested {len(texts)} items for business {self.business_id}"
-        )
+        try:
+            self.collection.upsert(
+                documents=texts,
+                embeddings=embeddings,
+                ids=ids,
+                metadatas=metas,
+            )
+        except Exception as e:
+            logger.error(f"[RAG] ChromaDB upsert failed for business={self.business_id}: {e}", exc_info=True)
+            raise
+
+        logger.info(f"[RAG] Ingested {len(texts)} items for business={self.business_id}")
         return {"ingested": len(texts)}

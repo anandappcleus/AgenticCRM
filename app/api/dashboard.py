@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+import logging
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.database import get_db
 from app.models import customer, conversation, lead
 from app.services.whatsapp import send_whatsapp_message
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/stats")
@@ -51,11 +53,15 @@ async def list_leads(
 @router.post("/manual-reply")
 async def send_manual_reply(body: dict):
     """Owner sends a manual message from the iOS app, bypassing AI."""
-    phone = body.get("phone", "")
-    text = body.get("text", "")
+    phone = body.get("phone", "").strip()
+    text = body.get("text", "").strip()
     if not phone or not text:
-        return {"sent": False, "error": "phone and text are required"}
+        logger.warning("[Dashboard] manual-reply called with missing phone or text")
+        raise HTTPException(status_code=400, detail="phone and text are required")
+    logger.info(f"[Dashboard] Manual reply to={phone} len={len(text)}")
     ok = await send_whatsapp_message(phone, text)
+    if not ok:
+        logger.error(f"[Dashboard] Manual reply FAILED to={phone}")
     return {"sent": ok}
 
 
@@ -65,6 +71,7 @@ async def pause_ai_for_customer(
     db: AsyncSession = Depends(get_db),
 ):
     """Owner takes over — AI stops auto-replying to this customer."""
+    logger.info(f"[Dashboard] AI paused for customer={customer_id}")
     await customer.set_ai_paused(db, customer_id, paused=True)
     return {"paused": True}
 
@@ -75,5 +82,6 @@ async def resume_ai_for_customer(
     db: AsyncSession = Depends(get_db),
 ):
     """Re-enable AI auto-replies for a customer."""
+    logger.info(f"[Dashboard] AI resumed for customer={customer_id}")
     await customer.set_ai_paused(db, customer_id, paused=False)
     return {"paused": False}

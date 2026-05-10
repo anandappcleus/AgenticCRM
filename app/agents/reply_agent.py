@@ -27,6 +27,8 @@ class ReplyAgent:
     ) -> str:
         # Fetch relevant business knowledge via RAG
         context = await self.rag.query(customer_message, top_k=4)
+        if "No business knowledge" in context:
+            logger.warning(f"[ReplyAgent] business={self.business_id} RAG empty — using generic reply")
 
         # Build system prompt with RAG context
         system_prompt = self._build_system_prompt(context, customer_name)
@@ -38,13 +40,23 @@ class ReplyAgent:
             {"role": "user", "content": customer_message},
         ]
 
-        response = await client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=messages,
-            max_tokens=300,
-            temperature=0.7,
-        )
-        reply = response.choices[0].message.content.strip()
+        try:
+            response = await client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=messages,
+                max_tokens=300,
+                temperature=0.7,
+            )
+            reply = response.choices[0].message.content.strip()
+            if not reply:
+                raise ValueError("NIM returned empty reply")
+        except Exception as e:
+            logger.error(
+                f"[ReplyAgent] NIM call failed for business={self.business_id} intent={intent}: {e}",
+                exc_info=True,
+            )
+            return "Abhi ek technical problem aa rahi hai, thoda wait karein. Hum jaldi reply karenge! 🙏"
+
         logger.info(f"[ReplyAgent] business={self.business_id} intent={intent} reply_len={len(reply)}")
         return reply
 

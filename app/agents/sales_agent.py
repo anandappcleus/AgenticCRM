@@ -45,7 +45,11 @@ class SalesAgent:
                 temperature=0.6,
             )
             suggestion = resp.choices[0].message.content.strip()
-            return suggestion if suggestion else None
+            if suggestion:
+                logger.info(f"[SalesAgent] business={self.business_id} offer appended: {suggestion[:60]}")
+                return suggestion
+            logger.warning(f"[SalesAgent] business={self.business_id} NIM returned empty offer")
+            return None
         except Exception as e:
-            logger.warning(f"SalesAgent failed: {e}")
+            logger.error(f"[SalesAgent] business={self.business_id} NIM call failed: {e}", exc_info=True)
             return None
