@@ -1,5 +1,6 @@
+import json
 import logging
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional, Union
 from openai import AsyncOpenAI
 from app.config import settings
 from app.services.rag import BusinessRAG
@@ -34,7 +35,13 @@ class ReplyAgent:
         history: List[Dict],
         customer_name: str,
         intent: str,
-    ) -> str:
+    ) -> Union[str, dict]:
+        """
+        Returns either:
+          - str  → plain WhatsApp text
+          - dict → {"text": str, "buttons": [...]}  for interactive buttons
+                   {"text": str, "sections": [...]}  for list message
+        """
         # Fetch relevant business knowledge via RAG
         context = await self.rag.query(customer_message, top_k=4)
         if "No business knowledge" in context:
@@ -61,8 +68,8 @@ class ReplyAgent:
                 max_tokens=400,
                 temperature=0.7,
             )
-            reply = response.choices[0].message.content.strip()
-            if not reply:
+            raw = response.choices[0].message.content.strip()
+            if not raw:
                 raise ValueError("NIM returned empty reply")
         except Exception as e:
             logger.error(
@@ -71,8 +78,35 @@ class ReplyAgent:
             )
             return "Abhi ek technical problem aa rahi hai, thoda wait karein. Hum jaldi reply karenge! 🙏"
 
-        logger.info(f"[ReplyAgent] business={self.business_id} intent={intent} reply_len={len(reply)}")
-        return reply
+        # Try parsing as interactive JSON (LLM decided to use buttons/list)
+        parsed = self._try_parse_interactive(raw)
+        if parsed:
+            kind = "buttons" if "buttons" in parsed else "list"
+            logger.info(
+                f"[ReplyAgent] business={self.business_id} intent={intent} "
+                f"interactive={kind} text_len={len(parsed.get('text', ''))}"
+            )
+            return parsed
+
+        logger.info(f"[ReplyAgent] business={self.business_id} intent={intent} reply_len={len(raw)}")
+        return raw
+
+    @staticmethod
+    def _try_parse_interactive(raw: str) -> Optional[dict]:
+        """Extract JSON from LLM response. Returns dict if valid interactive payload, else None."""
+        text = raw.strip()
+        # Strip markdown code fences if present (```json ... ```)
+        if text.startswith("```"):
+            lines = text.split("\n")
+            text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict) and "text" in data:
+                if "buttons" in data or "sections" in data:
+                    return data
+        except (json.JSONDecodeError, ValueError):
+            pass
+        return None
 
     def _build_system_prompt(self, rag_context: str, customer_name: str) -> str:
         return f"""You are a helpful WhatsApp assistant for a local Indian business.
@@ -89,35 +123,31 @@ LANGUAGE RULES:
 - If customer writes in English → reply in English
 - Never use formal/robotic language. Sound like a real shopkeeper.
 - Use "Aap" for respect, not "Tum"
-- End responses with a helpful question or call to action
 
-WHATSAPP FORMATTING (always use these — they render natively in WhatsApp):
+PLAIN TEXT FORMATTING (when not using buttons):
 - Wrap product names in *asterisks* for bold: *Silk Saree*
 - Wrap prices in *asterisks* for bold: *₹1,200*
-- Use emojis naturally: ✅ for available, ❌ for out of stock, 🛍️ for products, 📦 for orders, 🎁 for offers, 💬 for questions
-- Use bullet points with • for listing multiple products or features
-- Use numbered lists (1. 2. 3.) for steps like ordering or payment
-- Separate sections with a blank line for readability
-- Keep replies SHORT — 3-5 lines max for general chat, up to 8 lines for product listings
+- Use emojis naturally: ✅ available, ❌ out of stock, 🛍️ products, 📦 orders, 🎁 offers
+- Use • bullet points for listing multiple items
+- Keep replies SHORT — 3-5 lines max
 
-FORMATTING EXAMPLES BY INTENT:
+INTERACTIVE BUTTONS (JSON format — use when asking a question with ≤3 fixed choices):
+Return ONLY the JSON object, nothing else before or after it:
 
-Product inquiry → list clearly:
-*Banarasi Silk Saree* 🛍️
-• Price: *₹2,500*
-• Colors: Red, Blue, Green
-• Available: ✅
-Aapko kaunsa color pasand hai?
+{{"text": "Kaunsi size chahiye aapko?", "buttons": [{{"id": "size_s", "title": "S (28-30)"}}, {{"id": "size_m", "title": "M (32-34)"}}, {{"id": "size_l", "title": "L (36-38)"}}]}}
 
-General greeting → warm and brief:
-Namaste {customer_name} ji! 😊 Kaise help kar sakta hoon aapki aaj?
+INTERACTIVE LIST (JSON — use for 4-10 options like categories or appointment slots):
 
-Order confirmation → structured:
-✅ *Order Confirm!*
-1. Product: Silk Saree (Red)
-2. Size: Free size
-3. Delivery: 3-5 din
-Payment ke liye UPI send karein: *shop@upi* 🙏
+{{"text": "Kaunsi category dekhna chahte hain?", "sections": [{{"title": "Products", "rows": [{{"id": "cat_shirts", "title": "Shirts", "description": "From ₹499"}}, {{"id": "cat_pants", "title": "Pants", "description": "From ₹699"}}, {{"id": "cat_jackets", "title": "Jackets", "description": "From ₹999"}}]}}]}}
+
+USE BUTTONS FOR: size selection, color choice, yes/no confirm, payment method (≤3 options)
+USE LIST FOR: product categories, FAQ topics, appointment slots (4+ options)
+USE PLAIN TEXT FOR: greetings, product info, order confirmations, open-ended questions
+
+BUTTON RULES:
+- Button id: short, lowercase, underscored — size_m, confirm_yes, color_red
+- Button title: max 20 characters
+- Never nest buttons inside plain text — return ONLY the JSON when using buttons
 
 BUSINESS KNOWLEDGE (use this to answer questions):
 {rag_context}
@@ -126,5 +156,5 @@ IMPORTANT RULES:
 1. Never make up prices or products not in the knowledge base
 2. If you don't know something, say "Main abhi check karke batata hoon 🙏"
 3. Never promise delivery dates you can't confirm
-4. Always use WhatsApp formatting — no plain text walls
-5. If customer seems ready to buy, ask for their address/size/preference to close the sale"""
+4. When customer is ready to buy, use yes/no confirm buttons to close the sale
+5. After customer taps a button (message starts with S, M, L, Yes, No etc.) — continue the conversation naturally"""

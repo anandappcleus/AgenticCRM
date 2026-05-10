@@ -101,7 +101,7 @@ async def process_message(msg: IncomingMessage) -> None:
             if needs_sales:
                 sales_agent = SalesAgent(business_id=business.id)
                 t_agents = time.monotonic()
-                response_text, offer = await asyncio.gather(
+                agent_result, offer = await asyncio.gather(
                     reply_agent.run(
                         customer_message=msg.text,
                         history=history,
@@ -115,21 +115,38 @@ async def process_message(msg: IncomingMessage) -> None:
                     f"{(time.monotonic() - t_agents) * 1000:.0f}ms "
                     f"offer={'yes' if offer else 'no'}"
                 )
-                if offer:
-                    response_text += f"\n\n{offer}"
+                # Extract text for DB + append sales offer to text portion
+                if isinstance(agent_result, dict):
+                    interactive_payload = agent_result
+                    response_text = agent_result["text"]
+                    if offer:
+                        interactive_payload = dict(agent_result)
+                        interactive_payload["text"] = f"{response_text}\n\n{offer}"
+                        response_text = interactive_payload["text"]
+                else:
+                    interactive_payload = None
+                    response_text = agent_result
+                    if offer:
+                        response_text += f"\n\n{offer}"
             else:
-                response_text = await reply_agent.run(
+                agent_result = await reply_agent.run(
                     customer_message=msg.text,
                     history=history,
                     customer_name=cust.name,
                     intent=intent,
                 )
+                if isinstance(agent_result, dict):
+                    interactive_payload = agent_result
+                    response_text = agent_result["text"]
+                else:
+                    interactive_payload = None
+                    response_text = agent_result
 
-            # 8. Send reply — with interactive buttons when intent warrants it
+            # 8. Send reply — AI decides whether to use buttons/list/plain text
             await _send_reply(
                 phone=msg.phone,
                 text=response_text,
-                intent=intent,
+                interactive_payload=interactive_payload,
                 phone_id=business.whatsapp_phone_id,
                 token=business.whatsapp_token,
             )
@@ -169,55 +186,47 @@ async def process_message(msg: IncomingMessage) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Intent-based reply sender
+# AI-driven interactive reply sender
 # ---------------------------------------------------------------------------
-
-_INTENT_BUTTONS = {
-    "greeting": [
-        {"id": "see_products",  "title": "🛍️ Products"},
-        {"id": "check_offers",  "title": "🎁 Offers"},
-        {"id": "contact_owner", "title": "📞 Contact"},
-    ],
-    "price_inquiry": [
-        {"id": "order_now",     "title": "🛒 Order Now"},
-        {"id": "see_more",      "title": "📋 See More"},
-        {"id": "ask_question",  "title": "❓ Ask Question"},
-    ],
-    "purchase": [
-        {"id": "confirm_order", "title": "✅ Confirm Order"},
-        {"id": "change_item",   "title": "🔄 Change Item"},
-        {"id": "cancel_order",  "title": "❌ Cancel"},
-    ],
-    "complaint": [
-        {"id": "request_refund", "title": "🔄 Request Refund"},
-        {"id": "call_owner",     "title": "📞 Call Owner"},
-        {"id": "send_photo",     "title": "📸 Send Photo"},
-    ],
-}
-
 
 async def _send_reply(
     phone: str,
     text: str,
-    intent: str,
+    interactive_payload: Optional[dict],
     phone_id: Optional[str] = None,
     token: Optional[str] = None,
 ) -> None:
     """
-    Send the AI reply with interactive buttons when the intent supports it.
-    Falls back to plain text if button send fails.
-    Uses per-tenant phone_id and token when provided.
+    Route reply based on what the AI returned:
+      - dict with 'buttons'  → interactive button message (max 3)
+      - dict with 'sections' → list message (scrollable, max 10 items)
+      - None / str           → plain text message
+    Falls back to plain text on any send failure.
     """
-    buttons = _INTENT_BUTTONS.get(intent)
-    if buttons:
-        sent = await send_whatsapp_buttons(
-            to_phone=phone,
-            body=text,
-            buttons=buttons,
-            phone_id=phone_id,
-            token=token,
-        )
-        if sent:
-            return
-        logger.warning(f"[Pipeline] Button send failed for intent={intent}, falling back to text")
+    if interactive_payload:
+        if "buttons" in interactive_payload:
+            sent = await send_whatsapp_buttons(
+                to_phone=phone,
+                body=interactive_payload["text"],
+                buttons=interactive_payload["buttons"],
+                phone_id=phone_id,
+                token=token,
+            )
+            if sent:
+                return
+            logger.warning(f"[Pipeline] Button send failed for phone={phone}, falling back to text")
+
+        elif "sections" in interactive_payload:
+            sent = await send_whatsapp_list(
+                to_phone=phone,
+                body=interactive_payload["text"],
+                button_label="Select option",
+                sections=interactive_payload["sections"],
+                phone_id=phone_id,
+                token=token,
+            )
+            if sent:
+                return
+            logger.warning(f"[Pipeline] List send failed for phone={phone}, falling back to text")
+
     await send_whatsapp_message(phone, text, phone_id=phone_id, token=token)
