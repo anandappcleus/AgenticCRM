@@ -38,7 +38,7 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(webhook.router, prefix="/webhook", tags=["WhatsApp"])
+app.include_router(webhook.router, prefix="/api/v1/webhook", tags=["WhatsApp"])
 app.include_router(dashboard.router, prefix="/api/v1", tags=["Dashboard"])
 app.include_router(business.router, prefix="/api/v1/business", tags=["Business"])
 

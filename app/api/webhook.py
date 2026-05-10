@@ -4,7 +4,7 @@ from app.config import settings
 from app.services.whatsapp import parse_incoming_message
 from app.services.pipeline import process_message
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 logger = logging.getLogger(__name__)
 
 
@@ -15,8 +15,11 @@ async def verify_webhook(
     hub_challenge: str = Query(None, alias="hub.challenge"),
     hub_verify_token: str = Query(None, alias="hub.verify_token"),
 ):
+    logger.info(f"[Webhook verify] mode={hub_mode!r} token={hub_verify_token!r} expected={settings.WHATSAPP_VERIFY_TOKEN!r}")
     if hub_mode == "subscribe" and hub_verify_token == settings.WHATSAPP_VERIFY_TOKEN:
-        return int(hub_challenge)
+        # Return as plain text integer — Meta sends numeric challenge strings
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(content=hub_challenge)
     raise HTTPException(status_code=403, detail="Invalid verify token")
 
 
