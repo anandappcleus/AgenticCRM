@@ -1,5 +1,5 @@
 # Core
-# Build: 2026-05-11b (pin crewai+litellm versions)
+# Build: 2026-05-11c (chromadb 1.1.0 for crewai compat)
 fastapi>=0.115.0
 uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
@@ -15,7 +15,7 @@ greenlet==3.0.3
 
 # AI / RAG
 openai>=2.30.0
-chromadb==0.5.7
+chromadb==1.1.0
 tiktoken==0.7.0
 crewai==1.14.4
 litellm==1.83.7
