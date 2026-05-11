@@ -2,7 +2,7 @@ import asyncio
 import logging
 import time
 from typing import List, Optional
-from sqlalchemy import update as sql_update
+from sqlalchemy import select, update as sql_update
 from app.services.whatsapp import (
     IncomingMessage, send_whatsapp_message,
     send_whatsapp_buttons, send_whatsapp_list,
@@ -134,17 +134,37 @@ async def process_message(msg: IncomingMessage) -> None:
                     db=db,
                     language=business.language,
                 )
-                agent_result = await agent.run(
-                    customer_message=msg.text,
-                    history=history,
-                    intent=intent,
-                )
+                if intent in ("purchase", "price_inquiry"):
+                    # Run SalesAgent upsell in parallel — zero extra latency
+                    sales_agent = SalesAgent(business_id=business.id)
+                    agent_result, offer = await asyncio.gather(
+                        agent.run(
+                            customer_message=msg.text,
+                            history=history,
+                            intent=intent,
+                        ),
+                        sales_agent.get_offer(msg.text),
+                    )
+                else:
+                    agent_result = await agent.run(
+                        customer_message=msg.text,
+                        history=history,
+                        intent=intent,
+                    )
+                    offer = None
+
                 if isinstance(agent_result, dict):
                     interactive_payload = agent_result
                     response_text = agent_result["text"]
+                    if offer:
+                        interactive_payload = dict(agent_result)
+                        interactive_payload["text"] = f"{response_text}\n\n{offer}"
+                        response_text = interactive_payload["text"]
                 else:
                     interactive_payload = None
                     response_text = agent_result
+                    if offer:
+                        response_text += f"\n\n{offer}"
 
             else:
                 # ── FAST PATH: ReplyAgent (single LLM call, no tools) ───
@@ -203,20 +223,22 @@ async def process_message(msg: IncomingMessage) -> None:
             )
 
             # 9b. Fire CrewAI background intelligence crew (non-blocking)
+            #     Skip for pure greetings — no commercial signal to score.
             #     Runs AFTER reply is sent — zero latency impact on customer
             full_conversation = history + [
                 {"role": "user", "content": msg.text},
                 {"role": "assistant", "content": response_text},
             ]
-            asyncio.create_task(
-                _run_crm_crew_background(
-                    customer_id=cust.id,
-                    business_id=business.id,
-                    conversation=full_conversation,
-                    intent=intent,
-                    customer_name=cust.name,
+            if intent != "greeting":
+                asyncio.create_task(
+                    _run_crm_crew_background(
+                        customer_id=cust.id,
+                        business_id=business.id,
+                        conversation=full_conversation,
+                        intent=intent,
+                        customer_name=cust.name,
+                    )
                 )
-            )
 
             # 10. Save AI response then upsert lead (sequential — same DB session)
             await conv_model.save_message(
@@ -326,8 +348,24 @@ async def _run_crm_crew_background(
     try:
         from app.agents.crm_crew import run_crew
 
+        # Fetch current lead score/status so the crew can adjust relative to history
+        current_score, current_status = 50, "warm"
+        try:
+            async with AsyncSessionLocal() as db_score:
+                lead_row = await db_score.execute(
+                    select(Lead).where(Lead.customer_id == customer_id)
+                )
+                existing = lead_row.scalar_one_or_none()
+                if existing:
+                    current_score = existing.score or 50
+                    current_status = existing.status or "warm"
+        except Exception as exc:
+            logger.warning(f"[CRMCrew] Could not fetch current lead score: {exc}")
+
         # run_crew() is synchronous (CrewAI) — run in thread pool
-        result = await asyncio.to_thread(run_crew, conversation, intent, customer_name)
+        result = await asyncio.to_thread(
+            run_crew, conversation, intent, customer_name, current_score, current_status
+        )
 
         if not result:
             return

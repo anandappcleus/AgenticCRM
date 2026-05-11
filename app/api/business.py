@@ -1,14 +1,21 @@
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.database import get_db
 from app.models.business import create_business, get_business
-from app.services.rag import BusinessRAG
+from app.services.rag import BusinessRAG, get_rag
+from app.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+async def _require_api_key(x_api_key: Optional[str] = Header(default=None)) -> None:
+    """Reject requests with a wrong key when API_KEY is configured in settings."""
+    if settings.API_KEY and x_api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key header")
 
 
 class BusinessCreate(BaseModel):
@@ -42,7 +49,7 @@ class CatalogUpload(BaseModel):
     items: List[CatalogItem]
 
 
-@router.post("/register")
+@router.post("/register", dependencies=[Depends(_require_api_key)])
 async def register_business(
     body: BusinessCreate,
     db: AsyncSession = Depends(get_db),
@@ -73,7 +80,7 @@ async def register_business(
     }
 
 
-@router.post("/catalog")
+@router.post("/catalog", dependencies=[Depends(_require_api_key)])
 async def upload_catalog(body: CatalogUpload):
     """Upload product catalog / FAQs — indexes into ChromaDB for RAG."""
     if not body.items:
@@ -81,7 +88,7 @@ async def upload_catalog(body: CatalogUpload):
         raise HTTPException(status_code=400, detail="items list cannot be empty")
     logger.info(f"[Business] Catalog upload started business={body.business_id} count={len(body.items)}")
     try:
-        rag = BusinessRAG(body.business_id)
+        rag = get_rag(body.business_id)
         items = [item.model_dump() for item in body.items]
         result = await rag.ingest_catalog(items)
     except Exception as e:

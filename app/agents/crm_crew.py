@@ -20,8 +20,9 @@ from typing import Dict, List
 from crewai import Agent, Task, Crew, Process, LLM
 from app.config import settings
 
-# Disable CrewAI's anonymous telemetry
+# Disable CrewAI's anonymous telemetry and tracing preference banner
 os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
+os.environ.setdefault("CREWAI_TRACING_ENABLED", "false")
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,9 @@ Return ONLY a valid JSON object — no markdown, no explanation:
         description="""Using the customer profile from the previous task, score this lead.
 
 Customer: {customer_name} | Intent: {intent}
+Previous CRM record: score={current_score}/100, status={current_status}
+Adjust the score from the previous value based on signals in THIS conversation.
+Increase if purchase signals are stronger; decrease if the customer has gone cold.
 
 Return ONLY a valid JSON object — no markdown, no explanation:
 {{
@@ -142,7 +146,13 @@ Scoring guide:
 # Public API — called via asyncio.to_thread() from pipeline
 # ---------------------------------------------------------------------------
 
-def run_crew(conversation: List[Dict], intent: str, customer_name: str) -> dict:
+def run_crew(
+    conversation: List[Dict],
+    intent: str,
+    customer_name: str,
+    current_score: int = 50,
+    current_status: str = "warm",
+) -> dict:
     """
     Run the CRM intelligence crew synchronously.
     Called via asyncio.to_thread() from the async pipeline — does not block the
@@ -176,6 +186,8 @@ def run_crew(conversation: List[Dict], intent: str, customer_name: str) -> dict:
             "conversation": conversation_text,
             "customer_name": customer_name,
             "intent": intent,
+            "current_score": current_score,
+            "current_status": current_status,
         })
 
         # task_outputs[0] = profiler output, result.raw = scorer output (last task)

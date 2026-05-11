@@ -3,6 +3,7 @@ from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, Query
 from app.config import settings
 from app.services.whatsapp import parse_incoming_message
 from app.services.pipeline import process_message
+from app.services.redis_client import is_duplicate_message
 
 router = APIRouter(redirect_slashes=False)
 logger = logging.getLogger(__name__)
@@ -38,6 +39,11 @@ async def receive_message(request: Request, bg: BackgroundTasks):
             return {"status": "ok", "skipped": True}
 
         msg_data = parse_incoming_message(value)
+
+        # Deduplicate — Meta retries delivery if we respond slowly
+        if await is_duplicate_message(msg_data.message_id):
+            logger.info(f"[Webhook] Duplicate message_id={msg_data.message_id} skipped")
+            return {"status": "ok", "skipped": True}
 
         # Process in background — return 200 immediately so Meta doesn't retry
         bg.add_task(process_message, msg_data)

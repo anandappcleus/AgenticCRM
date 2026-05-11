@@ -31,6 +31,9 @@ class Settings(BaseSettings):
 
     # App
     SECRET_KEY: str = "change-me-in-prod"
+    # Set API_KEY via Railway env to protect dashboard + business admin endpoints.
+    # Leave empty to disable auth (backward-compatible).
+    API_KEY: str = ""
     DEBUG: bool = False
     FOLLOWUP_HOURS: int = 24
     CHROMA_PATH: str = "./chroma_db"

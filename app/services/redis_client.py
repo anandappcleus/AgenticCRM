@@ -125,3 +125,30 @@ async def release_lock(customer_id: str) -> None:
         await _redis.delete(f"{_LOCK_PREFIX}{customer_id}")
     except Exception as exc:
         logger.warning(f"[Redis] release_lock error for {customer_id}: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Message deduplication — prevents processing the same WhatsApp message twice
+# (Meta retries webhook delivery if it doesn't receive 200 quickly enough)
+# ---------------------------------------------------------------------------
+
+_MSG_SEEN_PREFIX = "crm:msg:"
+_MSG_SEEN_TTL = 300  # 5 minutes — Meta retries are always within seconds
+
+
+async def is_duplicate_message(message_id: str) -> bool:
+    """
+    Atomically check-and-set a seen flag for a WhatsApp message_id.
+    Returns True if this message was already processed (duplicate).
+    Falls back to False (process the message) when Redis is unavailable.
+    """
+    if _redis is None:
+        return False
+    try:
+        result = await _redis.set(
+            f"{_MSG_SEEN_PREFIX}{message_id}", "1", nx=True, ex=_MSG_SEEN_TTL
+        )
+        return result is None  # None means key already existed → duplicate
+    except Exception as exc:
+        logger.warning(f"[Redis] is_duplicate_message error: {exc}")
+        return False  # fail open — process rather than silently drop

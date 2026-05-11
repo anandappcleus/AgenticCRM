@@ -1,12 +1,22 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.database import get_db
 from app.models import customer, conversation, lead
 from app.services.whatsapp import send_whatsapp_message
+from app.config import settings
 
-router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+async def _require_api_key(x_api_key: Optional[str] = Header(default=None)) -> None:
+    """Reject requests with a wrong key when API_KEY is configured in settings."""
+    if settings.API_KEY and x_api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key header")
+
+
+router = APIRouter(dependencies=[Depends(_require_api_key)])
 
 
 @router.get("/stats")

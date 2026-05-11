@@ -1,5 +1,6 @@
 import chromadb
 import logging
+import re
 from typing import List
 from openai import AsyncOpenAI
 from app.config import settings
@@ -55,8 +56,10 @@ class BusinessRAG:
             results = self.collection.query(
                 query_embeddings=[query_embedding],
                 n_results=min(top_k, count),
+                include=["documents", "distances"],
             )
             docs = results["documents"][0]
+            distances = results.get("distances", [[]])[0]
         except Exception as e:
             logger.error(f"[RAG] ChromaDB query failed for business={self.business_id}: {e}", exc_info=True)
             return "No business knowledge loaded yet. Reply generically."
@@ -65,8 +68,16 @@ class BusinessRAG:
             logger.warning(f"[RAG] business={self.business_id} query returned 0 results for: {text[:60]}")
             return "No business knowledge loaded yet. Reply generically."
 
-        logger.info(f"[RAG] business={self.business_id} retrieved {len(docs)} results for: {text[:60]}")
-        return "\n---\n".join(docs)
+        # Filter out low-relevance results (cosine distance > 0.75 means similarity < 0.25)
+        # Always keep at least 1 result so RAG never falls silent on valid products.
+        _DIST_THRESHOLD = 0.75
+        relevant = [doc for doc, dist in zip(docs, distances) if dist <= _DIST_THRESHOLD]
+        if not relevant:
+            logger.info(f"[RAG] business={self.business_id} all results below threshold, using best match")
+            relevant = docs[:1]
+
+        logger.info(f"[RAG] business={self.business_id} retrieved {len(relevant)} results for: {text[:60]}")
+        return "\n---\n".join(relevant)
 
     async def ingest_catalog(self, items: List[dict]) -> dict:
         """
@@ -76,7 +87,7 @@ class BusinessRAG:
         """
         texts, ids, metas = [], [], []
 
-        for i, item in enumerate(items):
+        for item in items:
             text = (
                 f"Product: {item['name']}\n"
                 f"Price: ₹{item['price']}\n"
@@ -85,7 +96,10 @@ class BusinessRAG:
                 f"Available: {item.get('available', True)}"
             )
             texts.append(text)
-            ids.append(f"{self.business_id}_{i}")
+            # Name-based IDs make upsert idempotent — re-ingesting the same
+            # catalog doesn't create orphaned entries for removed products.
+            safe_name = re.sub(r'[^a-z0-9]', '_', item['name'].lower())
+            ids.append(f"{self.business_id}_{safe_name}")
             metas.append({"type": "product", "name": item["name"]})
 
         # Batch embed all texts in one API call
@@ -117,3 +131,18 @@ class BusinessRAG:
 
         logger.info(f"[RAG] Ingested {len(texts)} items for business={self.business_id}")
         return {"ingested": len(texts)}
+
+
+# ---------------------------------------------------------------------------
+# Singleton cache — one BusinessRAG instance per business_id per process.
+# Avoids re-opening the ChromaDB PersistentClient on every request.
+# ---------------------------------------------------------------------------
+
+_rag_instances: dict = {}
+
+
+def get_rag(business_id: str) -> BusinessRAG:
+    """Return a cached BusinessRAG instance for the given business_id."""
+    if business_id not in _rag_instances:
+        _rag_instances[business_id] = BusinessRAG(business_id)
+    return _rag_instances[business_id]

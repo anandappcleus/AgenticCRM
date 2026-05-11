@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.database import Business, Customer
-from app.services.rag import BusinessRAG
+from app.services.rag import BusinessRAG, get_rag
 from app.agents.tools import TOOL_SCHEMAS, ToolExecutor
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ class OrderAgent:
         self.customer = customer
         self.db = db
         self.language = language
-        self.rag = BusinessRAG(business.id)
+        self.rag = get_rag(business.id)
         self.executor = ToolExecutor(
             db=db,
             business=business,

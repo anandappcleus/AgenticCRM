@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from openai import AsyncOpenAI
 from app.config import settings
-from app.services.rag import BusinessRAG
+from app.services.rag import BusinessRAG, get_rag
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
@@ -16,7 +16,7 @@ class SalesAgent:
 
     def __init__(self, business_id: str):
         self.business_id = business_id
-        self.rag = BusinessRAG(business_id)
+        self.rag = get_rag(business_id)
 
     async def get_offer(self, customer_message: str) -> Optional[str]:
         """
