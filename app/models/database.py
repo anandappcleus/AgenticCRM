@@ -30,6 +30,20 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Safe migrations — add columns that may be missing on existing DBs
+        _migrations = [
+            "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_token TEXT",
+            "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS webhook_verify_token VARCHAR(100)",
+            "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS system_prompt TEXT",
+            "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS business_hours TEXT",
+            "ALTER TABLE customers ADD COLUMN IF NOT EXISTS ai_paused BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes TEXT",
+        ]
+        for sql in _migrations:
+            try:
+                await conn.execute(__import__("sqlalchemy").text(sql))
+            except Exception:
+                pass  # column already exists or table doesn't exist yet
 
 
 # ── BUSINESS (one per client you onboard) ─────────────────────────────────
