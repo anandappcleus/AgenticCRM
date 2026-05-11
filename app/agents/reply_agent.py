@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Dict, List, Optional, Union
 from openai import AsyncOpenAI
 from app.config import settings
@@ -93,12 +94,22 @@ class ReplyAgent:
 
     @staticmethod
     def _try_parse_interactive(raw: str) -> Optional[dict]:
-        """Extract JSON from LLM response. Returns dict if valid interactive payload, else None."""
+        """
+        Extract an interactive JSON payload from the LLM response.
+        Handles three cases:
+          1. Entire response is JSON (ideal)
+          2. JSON is embedded somewhere in the text (LLM leaked surrounding words)
+          3. JSON is in a markdown code fence ```json ... ```
+        Returns dict with 'text'+'buttons' or 'text'+'sections', else None.
+        """
         text = raw.strip()
-        # Strip markdown code fences if present (```json ... ```)
+
+        # Case 3: strip markdown code fences
         if text.startswith("```"):
             lines = text.split("\n")
-            text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+            text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:]).strip()
+
+        # Case 1: entire response is JSON
         try:
             data = json.loads(text)
             if isinstance(data, dict) and "text" in data:
@@ -106,6 +117,24 @@ class ReplyAgent:
                     return data
         except (json.JSONDecodeError, ValueError):
             pass
+
+        # Case 2: JSON object embedded anywhere in the text
+        # Find the first '{' and last '}' that form a valid JSON object
+        start = text.find("{")
+        if start != -1:
+            # Walk backwards from the end to find a closing brace that gives valid JSON
+            end = text.rfind("}")
+            while end > start:
+                candidate = text[start:end + 1]
+                try:
+                    data = json.loads(candidate)
+                    if isinstance(data, dict) and "text" in data:
+                        if "buttons" in data or "sections" in data:
+                            return data
+                except (json.JSONDecodeError, ValueError):
+                    pass
+                end = text.rfind("}", start, end)
+
         return None
 
     def _build_system_prompt(self, rag_context: str, customer_name: str) -> str:
