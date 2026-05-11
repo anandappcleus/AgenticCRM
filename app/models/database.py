@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import (
     Column, String, Integer, Text, Boolean, DateTime, Float,
-    ForeignKey, Enum, func,
+    ForeignKey, Enum, func, JSON,
 )
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -72,6 +72,7 @@ class Customer(Base):
     business = relationship("Business", back_populates="customers")
     messages = relationship("Message", back_populates="customer")
     lead = relationship("Lead", back_populates="customer", uselist=False)
+    orders = relationship("Order", back_populates="customer")
 
 
 # ── MESSAGE ───────────────────────────────────────────────────────────────
@@ -107,3 +108,39 @@ class Lead(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     customer = relationship("Customer", back_populates="lead")
+
+
+# ── ORDER ─────────────────────────────────────────────────────────────────
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    customer_id = Column(String, ForeignKey("customers.id"), index=True)
+    business_id = Column(String, ForeignKey("businesses.id"), index=True)
+    status = Column(
+        Enum("pending", "confirmed", "processing", "shipped", "delivered", "cancelled",
+             name="order_status"),
+        default="pending",
+    )
+    total_amount = Column(Float, default=0.0)
+    delivery_address = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    customer = relationship("Customer", back_populates="orders")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+# ── ORDER ITEM ────────────────────────────────────────────────────────────
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    order_id = Column(String, ForeignKey("orders.id"), index=True)
+    product_name = Column(String(200), nullable=False)
+    quantity = Column(Integer, default=1)
+    unit_price = Column(Float, nullable=False)
+    total_price = Column(Float, nullable=False)
+
+    order = relationship("Order", back_populates="items")

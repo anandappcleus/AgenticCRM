@@ -89,3 +89,39 @@ async def set_cached_embedding(
         await _redis.setex(_embed_key(model, text), ttl, json.dumps(vector))
     except Exception as exc:
         logger.warning(f"[Redis] set_cached_embedding error: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Per-customer distributed lock — prevents concurrent pipeline runs
+# ---------------------------------------------------------------------------
+
+_LOCK_PREFIX = "crm:lock:customer:"
+_LOCK_TTL = 30  # seconds — auto-expires even if release is missed
+
+
+async def acquire_lock(customer_id: str) -> bool:
+    """
+    Try to acquire an exclusive lock for a customer's pipeline run.
+    Returns True if lock acquired, False if another run is already in progress.
+    Fails open (returns True) when Redis is unavailable.
+    """
+    if _redis is None:
+        return True  # no Redis → no locking, proceed normally
+    try:
+        result = await _redis.set(
+            f"{_LOCK_PREFIX}{customer_id}", "1", nx=True, ex=_LOCK_TTL
+        )
+        return result is True
+    except Exception as exc:
+        logger.warning(f"[Redis] acquire_lock error for {customer_id}: {exc}")
+        return True  # fail open — better to process twice than drop messages
+
+
+async def release_lock(customer_id: str) -> None:
+    """Release the per-customer lock.  Silent no-op on any error."""
+    if _redis is None:
+        return
+    try:
+        await _redis.delete(f"{_LOCK_PREFIX}{customer_id}")
+    except Exception as exc:
+        logger.warning(f"[Redis] release_lock error for {customer_id}: {exc}")
