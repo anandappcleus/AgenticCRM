@@ -218,21 +218,19 @@ async def process_message(msg: IncomingMessage) -> None:
                 )
             )
 
-            # 10. Save AI response + upsert lead in parallel
-            await asyncio.gather(
-                conv_model.save_message(
-                    db=db,
-                    customer_id=cust.id,
-                    business_id=business.id,
-                    role="assistant",
-                    content=response_text,
-                ),
-                lead_model.upsert_lead(
-                    db=db,
-                    customer_id=cust.id,
-                    business_id=business.id,
-                    intent=intent,
-                ),
+            # 10. Save AI response then upsert lead (sequential — same DB session)
+            await conv_model.save_message(
+                db=db,
+                customer_id=cust.id,
+                business_id=business.id,
+                role="assistant",
+                content=response_text,
+            )
+            await lead_model.upsert_lead(
+                db=db,
+                customer_id=cust.id,
+                business_id=business.id,
+                intent=intent,
             )
 
             # 11. Schedule follow-up

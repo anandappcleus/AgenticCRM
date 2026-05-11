@@ -25,59 +25,63 @@ os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
 
 logger = logging.getLogger(__name__)
 
-# LLM — reuse the same model/endpoint as the rest of the app (no extra cost)
-# For non-standard model names (NVIDIA NIM, Ollama, etc.) CrewAI needs the
-# model prefixed with "openai/" to route via LiteLLM's OpenAI-compatible path.
-_raw_model = settings.OPENAI_MODEL
-_crew_model = (
-    _raw_model
-    if _raw_model.startswith(("gpt-", "o1-", "o3-", "openai/"))
-    else f"openai/{_raw_model}"
-)
-_llm = LLM(
-    model=_crew_model,
-    api_key=settings.OPENAI_API_KEY,
-    base_url=settings.OPENAI_BASE_URL,
-    temperature=0.2,
-    max_tokens=400,
-)
 
-# ---------------------------------------------------------------------------
-# Agents — defined once at module level, reused across requests
-# ---------------------------------------------------------------------------
+def _make_llm() -> "LLM":
+    """
+    Build a CrewAI LLM instance for NVIDIA NIM (OpenAI-compatible).
+    Uses the 'hosted_vllm' native provider prefix — works without litellm.
+    Falls back gracefully if CrewAI LLM init fails.
+    """
+    raw_model = settings.OPENAI_MODEL
+    # hosted_vllm is CrewAI's native provider for OpenAI-compatible endpoints
+    # (does not require the litellm extra package)
+    crew_model = (
+        raw_model
+        if raw_model.startswith(("gpt-", "o1-", "o3-", "hosted_vllm/"))
+        else f"hosted_vllm/{raw_model}"
+    )
+    return LLM(
+        model=crew_model,
+        api_key=settings.OPENAI_API_KEY,
+        base_url=settings.OPENAI_BASE_URL,
+        temperature=0.2,
+        max_tokens=400,
+    )
 
-_profiler_agent = Agent(
-    role="Customer Behavior Analyst",
-    goal="Extract a structured JSON customer profile from a WhatsApp sales conversation.",
-    backstory=(
-        "You are an expert at analyzing sales conversations for Indian SME businesses. "
-        "You understand Hinglish, Hindi, and English. You identify what the customer wants, "
-        "their budget, sentiment, and purchase likelihood from casual chat."
-    ),
-    llm=_llm,
-    verbose=False,
-    allow_delegation=False,
-)
 
-_scorer_agent = Agent(
-    role="Sales Lead Scoring Specialist",
-    goal="Score sales leads 0-100 with clear reasoning and recommend the next best action.",
-    backstory=(
-        "You are a CRM specialist for Indian small businesses. "
-        "You score leads based on purchase intent, engagement, and budget signals. "
-        "Your scores help business owners prioritise who to follow up with first."
-    ),
-    llm=_llm,
-    verbose=False,
-    allow_delegation=False,
-)
+def _make_agents(llm: "LLM"):
+    profiler = Agent(
+        role="Customer Behavior Analyst",
+        goal="Extract a structured JSON customer profile from a WhatsApp sales conversation.",
+        backstory=(
+            "You are an expert at analyzing sales conversations for Indian SME businesses. "
+            "You understand Hinglish, Hindi, and English. You identify what the customer wants, "
+            "their budget, sentiment, and purchase likelihood from casual chat."
+        ),
+        llm=llm,
+        verbose=False,
+        allow_delegation=False,
+    )
+    scorer = Agent(
+        role="Sales Lead Scoring Specialist",
+        goal="Score sales leads 0-100 with clear reasoning and recommend the next best action.",
+        backstory=(
+            "You are a CRM specialist for Indian small businesses. "
+            "You score leads based on purchase intent, engagement, and budget signals. "
+            "Your scores help business owners prioritise who to follow up with first."
+        ),
+        llm=llm,
+        verbose=False,
+        allow_delegation=False,
+    )
+    return profiler, scorer
 
 
 # ---------------------------------------------------------------------------
 # Crew builder — fresh tasks per request, shared agents
 # ---------------------------------------------------------------------------
 
-def _build_crew() -> Crew:
+def _build_crew(profiler_agent: Agent, scorer_agent: Agent) -> Crew:
     """Build a crew with parameterized task descriptions (inputs via kickoff)."""
 
     profile_task = Task(
@@ -99,7 +103,7 @@ Return ONLY a valid JSON object — no markdown, no explanation:
   "language": "hindi|english|hinglish"
 }}""",
         expected_output="Valid JSON object with the customer profile fields",
-        agent=_profiler_agent,
+        agent=profiler_agent,
     )
 
     score_task = Task(
@@ -122,12 +126,12 @@ Scoring guide:
 - 30-49:  Low intent, early research stage                   → warm
 - 0-29:   Just a greeting or unresolved complaint            → cold""",
         expected_output="Valid JSON object with score, status, reasoning, next_action",
-        agent=_scorer_agent,
+        agent=scorer_agent,
         context=[profile_task],
     )
 
     return Crew(
-        agents=[_profiler_agent, _scorer_agent],
+        agents=[profiler_agent, scorer_agent],
         tasks=[profile_task, score_task],
         process=Process.sequential,
         verbose=False,
@@ -151,6 +155,14 @@ def run_crew(conversation: List[Dict], intent: str, customer_name: str) -> dict:
         }
         or {} on failure.
     """
+    # Lazy-initialize LLM and agents inside the function so import never fails.
+    try:
+        llm = _make_llm()
+        profiler_agent, scorer_agent = _make_agents(llm)
+    except Exception as exc:
+        logger.warning(f"[CRMCrew] LLM init failed — crew disabled: {exc}")
+        return {}
+
     # Format conversation list as readable text for the agents
     lines = []
     for msg in conversation:
@@ -159,7 +171,7 @@ def run_crew(conversation: List[Dict], intent: str, customer_name: str) -> dict:
     conversation_text = "\n".join(lines) or "(no prior conversation)"
 
     try:
-        crew = _build_crew()
+        crew = _build_crew(profiler_agent, scorer_agent)
         result = crew.kickoff(inputs={
             "conversation": conversation_text,
             "customer_name": customer_name,
