@@ -9,8 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app code (Railway injects env vars — no .env needed)
 COPY . .
 
-# Create ChromaDB persistence directory
-RUN mkdir -p /app/chroma_db
+# Create ChromaDB persistence directory (also pre-create volume mount path)
+RUN mkdir -p /app/chroma_db /data/chroma_db
 
 EXPOSE 8000
 
