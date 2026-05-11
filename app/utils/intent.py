@@ -31,6 +31,9 @@ INTENT_KEYWORDS: Dict[str, List[str]] = {
         "price", "kitna", "rate", "cost", "daam", "dam",
         "rupee", "₹", "rs", "discount", "offer", "cheap",
         "sasta", "costly", "mahenga", "kitne ka", "kya rate",
+        "payment", "pay", "dena hai", "bhugtan", "paisa",
+        "upi", "gpay", "paytm", "razorpay", "neft", "cash",
+        "online pay", "card", "nhi dena", "nahi dena",
     ],
     "hours": [
         "open", "close", "time", "timing", "kab",
@@ -40,7 +43,7 @@ INTENT_KEYWORDS: Dict[str, List[str]] = {
     "greeting": [
         "hello", "hi", "namaste", "haan", "hey",
         "good morning", "good evening", "bhai", "bhaiya",
-        "didi", "sir", "madam", "ji",
+        "didi", "sir", "madam",
     ],
 }
 
@@ -63,6 +66,13 @@ def classify_intent(text: str) -> str:
         "request_refund": "complaint",
         "call_owner":     "complaint",
         "send_photo":     "complaint",
+        # Payment button IDs
+        "pay_cash":       "purchase",
+        "pay_card":       "purchase",
+        "pay_online":     "purchase",
+        "pay_paytm":      "purchase",
+        "pay_gpay":       "purchase",
+        "pay_razor":      "purchase",
         # Button titles (what the model sees)
         "🛍️ products":   "price_inquiry",
         "🎁 offers":      "price_inquiry",
