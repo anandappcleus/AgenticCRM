@@ -1,9 +1,9 @@
 # Core
-# Build: 2026-05-11d (httpx 0.28.1 for crewai compat)
+# Build: 2026-05-11e (pin openai==2.30.0, pydantic-settings==2.10.1)
 fastapi>=0.115.0
 uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
-pydantic-settings==2.2.1
+pydantic-settings==2.10.1
 httpx==0.28.1
 
 # Database
@@ -14,7 +14,7 @@ psycopg2-binary==2.9.9
 greenlet==3.0.3
 
 # AI / RAG
-openai>=2.30.0
+openai==2.30.0
 chromadb==1.1.0
 tiktoken==0.7.0
 crewai==1.14.4
