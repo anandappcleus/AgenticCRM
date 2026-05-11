@@ -1,5 +1,5 @@
 # Core
-# Build: 2026-05-11 (cache bust — agentic AI update)
+# Build: 2026-05-11b (pin crewai+litellm versions)
 fastapi>=0.115.0
 uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
@@ -17,8 +17,8 @@ greenlet==3.0.3
 openai>=2.30.0
 chromadb==0.5.7
 tiktoken==0.7.0
-crewai
-litellm
+crewai==1.14.4
+litellm==1.83.7
 
 # Scheduler
 apscheduler==3.10.4
