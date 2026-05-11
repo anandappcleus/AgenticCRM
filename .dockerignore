@@ -1,0 +1,13 @@
+venv/
+venv311/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.env
+.git/
+.gitignore
+chroma_db/
+*.egg-info/
+.pytest_cache/
+tests/
